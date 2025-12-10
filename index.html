@@ -4,13 +4,8 @@
   <meta charset="utf-8" />
   <title>AIS Map Pseudo-3D (Digitraffic + MapLibre)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css"
-  />
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css"/>
   <link rel="icon" href="data:,">
-
   <style>
     html, body {
       height: 100%;
@@ -28,6 +23,9 @@
     .vessel-svg-icon {
       background: none !important;
       border: none !important;
+      /* Salli skaalaus */
+      will-change: transform;
+      display: inline-block;
     }
     .attribution {
       position: fixed;
@@ -82,12 +80,10 @@
   <div id="map"></div>
   <div class="sky-overlay"></div>
   <div class="ground-vignette"></div>
-
   <div class="attribution">
     Data © Fintraffic / Digitraffic (<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>).
     Map © OpenStreetMap contributors.
   </div>
-
   <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
   <script>
     const DIGITRAFFIC_USER = "JuhaMatti/AISMapLibreDemo";
@@ -327,6 +323,13 @@
       `;
     }
 
+    // Skaalausfunktio
+    function getPerspectiveScale() {
+      const pitch = map.getPitch();
+      // Skaalaa 1.0 ... 0.5 kun pitch kasvaa 0 -> 60 astetta (voit säätää)
+      return 1 - (Math.min(pitch, 60) / 120);
+    }
+
     // --- MapLibre (pseudo-3D) ---
     const map = new maplibregl.Map({
       container: 'map',
@@ -345,9 +348,7 @@
     const vesselState = {};
     const vesselMetadataByMmsi = {};
     let metadataLoaded = false;
-
-    // mmsi -> { marker, element, worldAngle, speed, color }
-    const vesselMarkers = {};
+    const vesselMarkers = {}; // mmsi -> {marker, element, lastAngle, lastSpeed, color}
     let firstCenter = true;
 
     async function fetchVesselMetadata() {
@@ -370,30 +371,6 @@
       }
       metadataLoaded = true;
       console.log("Vessel metadata count:", list.length);
-    }
-
-    // Päivitä kaikkien markkereiden kulma kartan bearingin mukaan
-    function updateMarkerRotations() {
-      const bearing = (typeof map.getBearing === "function") ? map.getBearing() : 0;
-      const normBearing = ((bearing % 360) + 360) % 360;
-
-      for (const mmsi in vesselMarkers) {
-        if (!Object.prototype.hasOwnProperty.call(vesselMarkers, mmsi)) continue;
-        const vm = vesselMarkers[mmsi];
-        if (!vm || !vm.element) continue;
-
-        const worldAngle = (typeof vm.worldAngle === "number" && isFinite(vm.worldAngle))
-          ? vm.worldAngle
-          : 0;
-
-        // laivan suunta kartassa = maailmasuunta - kartan bearing
-        const drawAngle = ((worldAngle - normBearing) % 360 + 360) % 360;
-
-        const svg = vm.element.querySelector("svg");
-        if (svg) {
-          svg.style.transform = `rotate(${drawAngle}deg)`;
-        }
-      }
     }
 
     async function loadAis() {
@@ -449,6 +426,8 @@
         // Luo/päivitä markkerit
         let anyPosition = null;
 
+        const scale = getPerspectiveScale();
+
         data.features.forEach(feature => {
           const props = feature.properties || {};
           const mmsi = props.mmsi || feature.mmsi;
@@ -467,16 +446,14 @@
             ? calcSpeedKnots
             : (typeof sog === "number" && isFinite(sog) ? sog : 0);
 
-          // Maailmasuunta: ensin AIS heading, sitten COG fallback
-          const worldAngle = (typeof props.heading === "number" && isFinite(props.heading))
+          let angle = (typeof props.heading === "number" && isFinite(props.heading))
             ? props.heading
             : (typeof props.cog === "number" && isFinite(props.cog) ? props.cog : 0);
 
           const shipType = meta.shipType;
           const color = shipTypeColor(shipType);
 
-          // SVG piirretään kulmalla 0 – varsinainen kulma tulee updateMarkerRotations():sta
-          const svgIcon = vesselSvg(speed, 0, color);
+          const svgIcon = vesselSvg(speed, angle, color);
           const name = meta.name || props.name || "Unknown vessel";
 
           let popupHtml = "";
@@ -528,32 +505,25 @@
             const el = document.createElement('div');
             el.className = "vessel-svg-icon";
             el.innerHTML = svgIcon;
+            el.style.transform = `scale(${scale})`;
             const popup = new maplibregl.Popup({ offset: 20 }).setHTML(popupHtml);
             const marker = new maplibregl.Marker({ element: el })
               .setLngLat([lon, lat])
               .setPopup(popup)
               .addTo(map);
-            vesselMarkers[mmsi] = {
-              marker,
-              element: el,
-              worldAngle: worldAngle,
-              speed: speed,
-              color: color
-            };
+            vesselMarkers[mmsi] = { marker, element: el, lastAngle: angle, lastSpeed: speed, color: color };
           } else {
             markerData.element.innerHTML = svgIcon;
             markerData.marker.setLngLat([lon, lat]);
-            markerData.worldAngle = worldAngle;
-            markerData.speed = speed;
-            markerData.color = color;
+            markerData.element.style.transform = `scale(${scale})`;
             if (markerData.marker.getPopup()) {
               markerData.marker.getPopup().setHTML(popupHtml);
             }
+            markerData.lastAngle = angle;
+            markerData.lastSpeed = speed;
+            markerData.color = color;
           }
         });
-
-        // Päivitä orientaatio nykyisen bearingin mukaan
-        updateMarkerRotations();
 
         // Ensimmäisellä kerralla zoomataan lähemmäs johonkin alukseen (jos löytyy)
         if (firstCenter && anyPosition) {
@@ -567,8 +537,16 @@
       }
     }
 
-    // Kun karttaa pyöritetään, laivat kääntyvät mukana kartan koordinaatistossa
-    map.on('rotate', updateMarkerRotations);
+    // --- Laivojen ikonit päivittyvät kartan pyöriessä ja kallistuessa ---
+    function updateAllVesselIcons() {
+      const scale = getPerspectiveScale();
+      Object.entries(vesselMarkers).forEach(([mmsi, markerData]) => {
+        if (markerData.lastAngle !== undefined && markerData.lastSpeed !== undefined && markerData.color) {
+          markerData.element.innerHTML = vesselSvg(markerData.lastSpeed, markerData.lastAngle, markerData.color);
+          markerData.element.style.transform = `scale(${scale})`;
+        }
+      });
+    }
 
     // Käynnistetään kun kartta on ladattu
     map.on('load', () => {
@@ -579,6 +557,12 @@
         });
       });
     });
+
+    // Päivitä ikonit kun karttaa pyöritetään tai kallistetaan
+    map.on('rotate', updateAllVesselIcons);
+    map.on('pitch', updateAllVesselIcons);
+    map.on('zoom', updateAllVesselIcons); // jos haluat zoomin vaikuttavan skaalaan
+
   </script>
 </body>
 </html>
