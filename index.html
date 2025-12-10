@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
-  <title>Pseudo-3D Map (MapLibre GL JS)</title>
+  <title>Pseudo-3D Map More Content</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet"/>
   <style>
@@ -16,14 +16,12 @@
 <script>
   const map = new maplibregl.Map({
     container: 'map',
-    style: 'https://demotiles.maplibre.org/style.json',
-    center: [22.0, 60.2], // [lng, lat]
+    style: 'https://tiles.stadiamaps.com/styles/osm-bright/style.json', // enemmän sisältöä!
+    center: [22.0, 60.2],
     zoom: 6,
-    pitch: 60,     // <- Tämä kallistaa karttaa!
+    pitch: 60,
     bearing: 0
   });
-
-  // Lisää halutessasi navigointikontrollit
   map.addControl(new maplibregl.NavigationControl());
 </script>
 </body>
