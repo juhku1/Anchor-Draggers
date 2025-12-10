@@ -322,14 +322,25 @@
       `;
     }
 
-    // Skaalaus ja skew
-    function getMarkerScale() {
-      const pitch = map.getPitch();
-      return 1 - Math.min(pitch, 60) / 120; // skaala 1.0 .. 0.5, säädä halutessasi
+    // Skaala markkerin etäisyyden mukaan
+    function getDistanceToCamera(lat, lon) {
+      const center = map.getCenter();
+      return haversine(center.lat, center.lng, lat, lon);
+    }
+    function getMarkerScaleByDistance(lat, lon) {
+      // Säädä nämä makusi mukaan
+      const minScale = 0.5;
+      const maxScale = 1.3;
+      const minDist = 0;       // 0 m
+      const maxDist = 20000;   // 20 km
+      const dist = getDistanceToCamera(lat, lon); // metreinä
+      const clamped = Math.max(minDist, Math.min(maxDist, dist));
+      const t = (clamped - minDist) / (maxDist - minDist);
+      return maxScale + (minScale - maxScale) * t;
     }
     function getSkewFromPitch() {
       const pitch = map.getPitch();
-      return Math.min(pitch * 0.4, 24); // max 24 astetta skew, säädä halutessasi
+      return Math.min(pitch * 0.4, 24);
     }
 
     // --- MapLibre (pseudo-3D) ---
@@ -429,7 +440,6 @@
         let anyPosition = null;
 
         const mapBearing = map.getBearing();
-        const scale = getMarkerScale();
         const skew = getSkewFromPitch();
 
         data.features.forEach(feature => {
@@ -458,6 +468,7 @@
           const color = shipTypeColor(shipType);
 
           const visualAngle = ((angle - mapBearing + 360) % 360);
+          const scale = getMarkerScaleByDistance(lat, lon);
 
           const svgIcon = vesselSvg(speed, angle, color);
           const name = meta.name || props.name || "Unknown vessel";
@@ -522,7 +533,7 @@
             markerData.element.innerHTML = svgIcon;
             markerData.marker.setLngLat([lon, lat]);
             const visualAngle2 = ((angle - map.getBearing() + 360) % 360);
-            const scale2 = getMarkerScale();
+            const scale2 = getMarkerScaleByDistance(lat, lon);
             const skew2 = getSkewFromPitch();
             markerData.element.style.transform = `scale(${scale2}) skewY(${skew2}deg) rotate(${visualAngle2}deg)`;
             if (markerData.marker.getPopup()) {
@@ -547,10 +558,16 @@
 
     function updateAllVesselIcons() {
       const mapBearing = map.getBearing();
-      const scale = getMarkerScale();
       const skew = getSkewFromPitch();
       Object.entries(vesselMarkers).forEach(([mmsi, markerData]) => {
-        if (markerData.lastAngle !== undefined && markerData.lastSpeed !== undefined && markerData.color) {
+        if (
+          markerData.lastAngle !== undefined &&
+          markerData.lastSpeed !== undefined &&
+          markerData.color &&
+          markerData.marker
+        ) {
+          const lngLat = markerData.marker.getLngLat();
+          const scale = getMarkerScaleByDistance(lngLat.lat, lngLat.lng);
           const visualAngle = ((markerData.lastAngle - mapBearing + 360) % 360);
           markerData.element.style.transform = `scale(${scale}) skewY(${skew}deg) rotate(${visualAngle}deg)`;
         }
