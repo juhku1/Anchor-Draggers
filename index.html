@@ -320,18 +320,24 @@
       `;
     }
 
-    // --- MapLibre (pseudo-3D) ---
+    // --- MapLibre (pseudo-3D, mutta aina pohjoinen ylös) ---
     const map = new maplibregl.Map({
       container: 'map',
       style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
       center: [22.0, 60.2],
       zoom: 6,
       pitch: 60,
-      bearing: 20,
+      bearing: 0,             // AINA NORTH-UP
       attributionControl: false
     });
 
     map.addControl(new maplibregl.NavigationControl(), 'top-right');
+
+    // Estetään kartan pyörittäminen (dragRotate + näppäin/elekierto)
+    map.dragRotate.disable();
+    if (map.touchZoomRotate && map.touchZoomRotate.disableRotation) {
+      map.touchZoomRotate.disableRotation();
+    }
 
     // --- AIS state ---
     let loading = false;
@@ -440,9 +446,9 @@
 
           const shipType = meta.shipType;
           const color = shipTypeColor(shipType);
-          const mapBearing = map.getBearing();
-          // *** TÄRKEÄ KOHTA: visualAngle ottaa huomioon kartan bearingin ***
-          const visualAngle = ((angle - mapBearing + 360) % 360);
+
+          // NORTH-UP: visualAngle = heading suoraan pohjoisesta
+          const visualAngle = angle;
           const svgIcon = vesselSvg(speed, visualAngle, color);
           const name = meta.name || props.name || "Unknown vessel";
 
@@ -500,7 +506,6 @@
               .setLngLat([lon, lat])
               .setPopup(popup)
               .addTo(map);
-            // *** Tallennetaan viimeisin kulma, nopeus ja väri markerDataan ***
             vesselMarkers[mmsi] = { marker, element: el, lastAngle: angle, lastSpeed: speed, color: color };
           } else {
             markerData.element.innerHTML = svgIcon;
@@ -516,7 +521,7 @@
 
         // Ensimmäisellä kerralla zoomataan lähemmäs johonkin alukseen (jos löytyy)
         if (firstCenter && anyPosition) {
-          map.flyTo({ center: anyPosition, zoom: 8, essential: true });
+          map.flyTo({ center: anyPosition, zoom: 8, essential: true, bearing: 0 });
           firstCenter = false;
         }
       } catch (err) {
@@ -524,17 +529,6 @@
       } finally {
         loading = false;
       }
-    }
-
-    // --- Laivojen ikonit päivittyvät kartan pyöriessä ---
-    function updateAllVesselIcons() {
-      const mapBearing = map.getBearing();
-      Object.entries(vesselMarkers).forEach(([mmsi, markerData]) => {
-        if (markerData.lastAngle !== undefined && markerData.lastSpeed !== undefined && markerData.color) {
-          const visualAngle = ((markerData.lastAngle - mapBearing + 360) % 360);
-          markerData.element.innerHTML = vesselSvg(markerData.lastSpeed, visualAngle, markerData.color);
-        }
-      });
     }
 
     // Käynnistetään kun kartta on ladattu
@@ -547,9 +541,7 @@
       });
     });
 
-    // Päivitä ikonit kun karttaa pyöritetään tai kallistetaan
-    map.on('rotate', updateAllVesselIcons);
-    map.on('pitch', updateAllVesselIcons);
+    // HUOM: ei enää rotate/pitch-kuuntelijoita, koska kartta ei pyöri
 
   </script>
 </body>
