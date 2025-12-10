@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
-  <title>Pseudo-3D Map Test</title>
+  <title>Pseudo-3D Dark Matter Map</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
 
   <!-- MapLibre CSS -->
@@ -20,110 +20,31 @@
       margin: 0;
       padding: 0;
       background: #050812;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
     #map {
       width: 100vw;
       height: 100vh;
-      position: absolute;
-      top: 0;
-      left: 0;
-    }
-
-    /* Harmaa laatikko ylävasempaan kulmaan */
-    .style-switcher {
-      position: fixed;    /* aina ruudun kulmassa */
-      top: 10px;
-      left: 10px;
-      z-index: 9999;      /* kaiken muun päälle */
-      background: rgba(15, 23, 42, 0.9);
-      color: #fff;
-      padding: 6px 10px;
-      border-radius: 6px;
-      font-size: 13px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-    }
-
-    .style-switcher label {
-      font-size: 12px;
-      opacity: 0.9;
-    }
-
-    .style-switcher select {
-      background: #111827;
-      color: #fff;
-      border: 1px solid #374151;
-      border-radius: 4px;
-      padding: 2px 6px;
-      font-size: 13px;
     }
   </style>
 </head>
 <body>
-  <!-- Kartta -->
   <div id="map"></div>
-
-  <!-- Karttatyylin valitsin (harmaa laatikko) -->
-  <div class="style-switcher">
-    <label for="style-select">Karttatyylit:</label>
-    <select id="style-select">
-      <option value="osmBright">OSM Bright (MapLibre demo)</option>
-      <option value="darkMatter">Dark Matter (Carto)</option>
-      <option value="positron">Positron (Carto)</option>
-      <option value="voyager">Voyager (Carto)</option>
-    </select>
-  </div>
 
   <!-- MapLibre JS -->
   <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
   <script>
-    // Karttatyylien URLit
-    const styleUrls = {
-      osmBright: 'https://demotiles.maplibre.org/styles/osm-bright-gl-style/style.json',
-      darkMatter: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
-      positron:   'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
-      voyager:    'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json'
-    };
-
-    // Luodaan kartta aloitustyylillä (OSM Bright)
     const map = new maplibregl.Map({
       container: 'map',
-      style: styleUrls.osmBright,
+      // Carto Dark Matter -tyyli
+      style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
       center: [24.94, 60.17], // Helsinki
       zoom: 11,
-      pitch: 60,              // pseudo-3D kallistus
+      pitch: 60,              // pseudo-3D kallistus (laita 0 jos haluat täysin 2D)
       bearing: 20
     });
 
     map.addControl(new maplibregl.NavigationControl(), 'top-right');
-
-    // Dropdown-elementti
-    const selectEl = document.getElementById('style-select');
-
-    // Tyylin vaihto dropdownista
-    selectEl.addEventListener('change', () => {
-      const key = selectEl.value;
-      const newStyle = styleUrls[key];
-      if (!newStyle) return;
-
-      // Talletetaan nykyinen kameran tila
-      const center = map.getCenter();
-      const zoom = map.getZoom();
-      const bearing = map.getBearing();
-      const pitch = map.getPitch();
-
-      // Vaihdetaan tyyli
-      map.setStyle(newStyle);
-
-      // Kun uusi tyyli on ladattu, palautetaan näkymä
-      map.once('styledata', () => {
-        map.jumpTo({ center, zoom, bearing, pitch });
-      });
-    });
   </script>
 </body>
 </html>
