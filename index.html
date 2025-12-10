@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
-  <title>Pseudo-3D Map Demo</title>
+  <title>Pseudo-3D Map Test</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <link
     href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css"
@@ -13,101 +13,28 @@
       height: 100%;
       margin: 0;
       padding: 0;
-      background: #050812;
     }
-
     #map {
       width: 100vw;
       height: 100vh;
-      position: relative;
-    }
-
-    /* Horisontti-efekti kartan yläreunaan */
-    .sky-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 35vh;
-      pointer-events: none;
-      z-index: 500;
-      background: linear-gradient(
-        to bottom,
-        rgba(5, 8, 18, 0.65),
-        rgba(5, 8, 18, 0)
-      );
-    }
-
-    /* Vignette / sumu kartan alaosaan */
-    .ground-vignette {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      width: 100vw;
-      height: 25vh;
-      pointer-events: none;
-      z-index: 500;
-      background: radial-gradient(
-        ellipse at bottom,
-        rgba(0, 0, 0, 0.5),
-        transparent 60%
-      );
     }
   </style>
 </head>
 <body>
   <div id="map"></div>
-  <div class="sky-overlay"></div>
-  <div class="ground-vignette"></div>
 
   <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
   <script>
-    // Peruskartta pseudo-3D asetuksilla
     const map = new maplibregl.Map({
       container: 'map',
-      style: 'https://demotiles.maplibre.org/style.json',
-      center: [22.0, 60.2], // Suomi
-      zoom: 6,
-      pitch: 60,   // kallistus → pseudo-3D
-      bearing: 0
+      style: 'https://demotiles.maplibre.org/style.json', // TÄMÄ OIKEAKSI
+      center: [24.94, 60.17], // Helsinki
+      zoom: 11,
+      pitch: 60,
+      bearing: 20
     });
 
     map.addControl(new maplibregl.NavigationControl(), 'top-right');
-
-    // Esimerkkilaivoja (lng, lat)
-    const vesselPositions = [
-      { id: 'v1', name: 'Vessel A', coords: [24.940, 60.170] }, // Helsinki
-      { id: 'v2', name: 'Vessel B', coords: [22.266, 60.451] }, // Turku
-      { id: 'v3', name: 'Vessel C', coords: [25.471, 65.012] }, // Oulu
-      { id: 'v4', name: 'Vessel D', coords: [21.616, 63.096] }  // Vaasa
-    ];
-
-    // Säilytetään markkerit, jotta niitä voi päivittää liikkeen aikana
-    const vesselMarkers = [];
-
-    // Luo pseudo-3D markkeri (DOM-elementti)
-    function createVesselElement(color) {
-      const el = document.createElement('div');
-      el.style.borderRadius = '50%';
-      el.style.background = color || 'rgba(0, 200, 255, 0.95)';
-      el.style.boxShadow = '0 8px 18px rgba(0,0,0,0.7)';
-      el.style.border = '2px solid rgba(255,255,255,0.9)';
-      el.style.transformOrigin = 'center center';
-      el.style.transition = 'width 0.1s linear, height 0.1s linear, opacity 0.1s linear, filter 0.1s linear';
-      return el;
-    }
-
-    // Päivitä markkerin koko ja “syvyys” karttanäkymän perusteella
-    function updateMarkerPerspective(markerData) {
-      const { lngLat, element } = markerData;
-      const container = map.getContainer();
-      const h = container.clientHeight;
-
-      const projected = map.project(lngLat);
-      const y = projected.y;
-
-      // t: 0 = alareuna, 1 = yläreuna
-      const t = 1 - (y / h);
-
-      // Skaalaus: kauempana (ylhäällä) pienempi, lähempänä (alhaalla) isompi
-      const baseSize = 22; // px
+  </script>
+</body>
+</html>
