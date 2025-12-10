@@ -5,13 +5,10 @@
   <title>AIS Map Pseudo-3D (Digitraffic + MapLibre)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
 
-  <!-- MapLibre CSS -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css"
   />
-
-  <!-- Hiljennetään favicon-404 -->
   <link rel="icon" href="data:,">
 
   <style>
@@ -22,23 +19,19 @@
       background: #050812;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
-
     #map {
       width: 100vw;
       height: 100vh;
       position: relative;
       background: #020818;
     }
-
     .vessel-svg-icon {
       background: none !important;
       border: none !important;
     }
-
     .attribution {
       position: fixed;
-      bottom: 4px;
-      left: 4px;
+      bottom: 4px; left: 4px;
       background: white;
       padding: 3px 8px;
       font-size: 11px;
@@ -48,7 +41,6 @@
       z-index: 2000;
       pointer-events: none;
     }
-
     .flag-img {
       width: 24px;
       height: 18px;
@@ -58,12 +50,9 @@
       border-radius: 3px;
       background: #eee;
     }
-
-    /* Pseudo-3D horisontti yläreunaan */
     .sky-overlay {
       position: fixed;
-      top: 0;
-      left: 0;
+      top: 0; left: 0;
       width: 100vw;
       height: 35vh;
       pointer-events: none;
@@ -74,12 +63,9 @@
         rgba(5, 8, 18, 0)
       );
     }
-
-    /* Vignette alaosaan */
     .ground-vignette {
       position: fixed;
-      bottom: 0;
-      left: 0;
+      bottom: 0; left: 0;
       width: 100vw;
       height: 25vh;
       pointer-events: none;
@@ -102,7 +88,6 @@
     Map © OpenStreetMap contributors.
   </div>
 
-  <!-- MapLibre JS -->
   <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
   <script>
     const DIGITRAFFIC_USER = "JuhaMatti/AISMapLibreDemo";
@@ -143,7 +128,7 @@
       return mmsiCountry[prefix] || "";
     }
 
-    // --- Flag lookup for MMSI country (registration country) ---
+    // --- Flag lookup ---
     const countryNameToIso2 = {
       "Finland": "FI",
       "Sweden": "SE",
@@ -187,7 +172,7 @@
       return `<img class="flag-img" src="https://flagcdn.com/24x18/${iso2.toLowerCase()}.png" alt="${iso2} flag" loading="lazy">`;
     }
 
-    // --- UN/LOCODE CSV ---
+    // --- UN/LOCODE ---
     let unlocodeMap = {};
 
     function splitCsvLine(line) {
@@ -265,7 +250,7 @@
       return `${entry.name}, ${entry.country}`;
     }
 
-    // --- Utility functions ---
+    // --- Utility ---
     function haversine(lat1, lon1, lat2, lon2) {
       const R = 6371000;
       const toRad = d => d * Math.PI / 180;
@@ -286,5 +271,270 @@
 
     function formatMeters(value) {
       if (typeof value !== "number" || !isFinite(value)) return "–";
-      return "
-::contentReference[oaicite:0]{index=0}
+      return value.toFixed(1) + " m";
+    }
+
+    function formatTimestampMs(tsMs) {
+      if (typeof tsMs !== "number" || !isFinite(tsMs)) return "–";
+      return new Date(tsMs).toLocaleString();
+    }
+
+    function formatLatLon(lat, lon) {
+      if (typeof lat !== "number" || typeof lon !== "number") return "–";
+      return lat.toFixed(5) + ", " + lon.toFixed(5);
+    }
+
+    function safe(value, fallback = "–") {
+      return (value === null || value === undefined || value === "") ? fallback : value;
+    }
+
+    // --- Ship type ---
+    function shipTypeColor(shipType) {
+      if (shipType === undefined || shipType === null) return "#888";
+      if (shipType >= 60 && shipType < 70) return "#3a9eea";    // passenger
+      if (shipType >= 70 && shipType < 80) return "#f3c300";    // cargo
+      if (shipType >= 30 && shipType < 40) return "#e84e1b";    // fishing
+      if (shipType >= 80 && shipType < 90) return "#2ecc71";    // tanker
+      if (shipType >= 90) return "#ad00ff";                     // special
+      if (shipType >= 20 && shipType < 30) return "#aaaaaa";    // tug etc
+      if (shipType >= 50 && shipType < 60) return "#1abc9c";    // pilot/SAR
+      return "#888";
+    }
+
+    function shipTypeName(shipType) {
+      if (shipType === undefined || shipType === null) return "Unknown";
+      if (shipType >= 20 && shipType < 30) return "Wing-in-ground/Tug/Pusher";
+      if (shipType >= 30 && shipType < 40) return "Fishing";
+      if (shipType >= 40 && shipType < 50) return "High-speed craft";
+      if (shipType >= 50 && shipType < 60) return "Pilot/SAR";
+      if (shipType >= 60 && shipType < 70) return "Passenger";
+      if (shipType >= 70 && shipType < 80) return "Cargo";
+      if (shipType >= 80 && shipType < 90) return "Tanker";
+      if (shipType >= 90) return "Other special";
+      return "Other/Unknown";
+    }
+
+    function vesselSvg(speed, angle, color) {
+      const rounded = (typeof speed === "number" && isFinite(speed) && speed > 0)
+        ? Math.round(speed)
+        : "";
+      const rot = (typeof angle === "number" && isFinite(angle)) ? angle : 0;
+      return `
+        <svg width="44" height="44" viewBox="0 0 44 44" style="transform:rotate(${rot}deg)">
+          <polygon points="22,4 38,40 22,32 6,40" fill="${color}" stroke="#222" stroke-width="2"/>
+          <text x="22" y="26" font-family="Arial" font-size="13" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="middle">${rounded}</text>
+        </svg>
+      `;
+    }
+
+    // --- MapLibre (pseudo-3D) ---
+    const map = new maplibregl.Map({
+      container: 'map',
+      style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+      center: [22.0, 60.2],
+      zoom: 6,
+      pitch: 60,
+      bearing: 20,
+      attributionControl: false
+    });
+
+    map.addControl(new maplibregl.NavigationControl(), 'top-right');
+
+    // --- AIS state ---
+    let loading = false;
+    const vesselState = {};
+    const vesselMetadataByMmsi = {};
+    let metadataLoaded = false;
+    const vesselMarkers = {}; // mmsi -> {marker, element}
+    let firstCenter = true;
+
+    async function fetchVesselMetadata() {
+      if (metadataLoaded) return;
+      const url = "https://meri.digitraffic.fi/api/ais/v1/vessels";
+      const res = await fetch(url, {
+        headers: {
+          "Digitraffic-User": DIGITRAFFIC_USER,
+          "Accept": "application/json"
+        }
+      });
+      if (!res.ok) {
+        console.warn("Vessel metadata fetch failed:", res.status, res.statusText);
+        return;
+      }
+      const list = await res.json();
+      for (const v of list) {
+        if (!v || !v.mmsi) continue;
+        vesselMetadataByMmsi[v.mmsi] = v;
+      }
+      metadataLoaded = true;
+      console.log("Vessel metadata count:", list.length);
+    }
+
+    async function loadAis() {
+      if (loading) return;
+      loading = true;
+      try {
+        if (!metadataLoaded) await fetchVesselMetadata();
+
+        const thirtyMinutesMs = 30 * 60 * 1000;
+        const from = Date.now() - thirtyMinutesMs;
+        const url = "https://meri.digitraffic.fi/api/ais/v1/locations?from=" + from;
+        const res = await fetch(url, {
+          headers: {
+            "Digitraffic-User": DIGITRAFFIC_USER,
+            "Accept": "application/json"
+          }
+        });
+        if (!res.ok) throw new Error("HTTP " + res.status + " " + res.statusText);
+        const data = await res.json();
+        console.log("AIS features:", data.features ? data.features.length : 0);
+
+        // Lasketaan liikepohjainen nopeus
+        data.features.forEach(feature => {
+          const props = feature.properties || {};
+          const mmsi = props.mmsi || feature.mmsi;
+          if (!mmsi) return;
+          const lat = feature.geometry.coordinates[1];
+          const lon = feature.geometry.coordinates[0];
+          const sog = (typeof props.sog === "number" ? props.sog : undefined);
+          let calcSpeedKnots = null;
+          const tsExt = props.timestampExternal;
+          if (typeof tsExt === "number") {
+            const prev = vesselState[mmsi];
+            if (prev) {
+              const dtMs = tsExt - prev.lastTimestampMs;
+              const dtS = dtMs / 1000;
+              if (dtS > 5 && dtS < 3600) {
+                const distM = haversine(prev.lastLat, prev.lastLon, lat, lon);
+                if (distM > 1) {
+                  calcSpeedKnots = distM * 3600 / (1852 * dtS);
+                }
+              }
+            }
+            vesselState[mmsi] = {
+              lastLat: lat,
+              lastLon: lon,
+              lastTimestampMs: tsExt,
+              lastCalcSpeedKnots: calcSpeedKnots
+            };
+          }
+        });
+
+        // Luo/päivitä markkerit
+        let anyPosition = null;
+
+        data.features.forEach(feature => {
+          const props = feature.properties || {};
+          const mmsi = props.mmsi || feature.mmsi;
+          if (!mmsi) return;
+          const lat = feature.geometry.coordinates[1];
+          const lon = feature.geometry.coordinates[0];
+          anyPosition = anyPosition || [lon, lat];
+
+          const meta = vesselMetadataByMmsi[mmsi] || {};
+          const sog = (typeof props.sog === "number" ? props.sog : undefined);
+          let calcSpeedKnots = (vesselState[mmsi] && typeof vesselState[mmsi].lastCalcSpeedKnots === "number")
+            ? vesselState[mmsi].lastCalcSpeedKnots
+            : null;
+
+          const speed = (typeof calcSpeedKnots === "number" && isFinite(calcSpeedKnots))
+            ? calcSpeedKnots
+            : (typeof sog === "number" && isFinite(sog) ? sog : 0);
+
+          let angle = (typeof props.heading === "number" && isFinite(props.heading))
+            ? props.heading
+            : (typeof props.cog === "number" && isFinite(props.cog) ? props.cog : 0);
+
+          const shipType = meta.shipType;
+          const color = shipTypeColor(shipType);
+          const svgIcon = vesselSvg(speed, angle, color);
+          const name = meta.name || props.name || "Unknown vessel";
+
+          let popupHtml = "";
+          popupHtml += `<strong>${safe(name)}</strong><br>`;
+          popupHtml += `<strong>MMSI:</strong> ${safe(mmsi)}<br>`;
+
+          const regCountry = getMmsiCountry(mmsi) || "–";
+          const regIso2 = getCountryIso2FromMmsiCountry(regCountry);
+          const regFlag = regIso2 ? flagImgTag(regIso2) : "";
+          popupHtml += `<strong>Flag state:</strong> ${regCountry} ${regFlag}<br>`;
+
+          if (meta.imo) popupHtml += `<strong>IMO:</strong> ${meta.imo}<br>`;
+          if (meta.callSign) popupHtml += `<strong>Callsign:</strong> ${meta.callSign}<br>`;
+
+          if (meta.destination) {
+            const decoded = decodeDestination(meta.destination);
+            if (decoded) {
+              popupHtml += `<strong>Destination:</strong> ${meta.destination} (${decoded})<br>`;
+            } else {
+              popupHtml += `<strong>Destination:</strong> ${meta.destination}<br>`;
+            }
+          }
+
+          if (typeof meta.draught === "number") {
+            popupHtml += `<strong>Draft:</strong> ${formatMeters(meta.draught / 10)}<br>`;
+          }
+          if (shipType !== undefined) {
+            popupHtml += `<strong>Ship type:</strong> ${shipTypeName(shipType)} (${shipType})<br>`;
+          }
+
+          popupHtml += `<hr style="margin:4px 0;">`;
+          popupHtml += `<strong>Reported SOG:</strong> ${formatKnots(sog)}<br>`;
+          popupHtml += `<strong>Calculated speed:</strong> ${formatKnots(calcSpeedKnots)}<br>`;
+          if (props.cog !== undefined) popupHtml += `<strong>COG:</strong> ${props.cog}&deg;<br>`;
+          if (props.heading !== undefined) popupHtml += `<strong>Heading:</strong> ${props.heading}&deg;<br>`;
+          if (props.navStat !== undefined) popupHtml += `<strong>Nav status code:</strong> ${props.navStat}<br>`;
+          if (props.posAcc !== undefined) popupHtml += `<strong>Position accuracy:</strong> ${props.posAcc ? "high" : "low"}<br>`;
+          if (props.raim !== undefined) popupHtml += `<strong>RAIM:</strong> ${props.raim ? "on" : "off"}<br>`;
+          if (props.rot !== undefined) popupHtml += `<strong>ROT:</strong> ${props.rot}<br>`;
+          if (typeof props.timestampExternal === "number") {
+            popupHtml += `<strong>Last update:</strong> ${formatTimestampMs(props.timestampExternal)}<br>`;
+          } else if (props.timestamp !== undefined) {
+            popupHtml += `<strong>Timestamp (AIS UTC sec):</strong> ${props.timestamp}<br>`;
+          }
+          popupHtml += `<strong>Position:</strong> ${formatLatLon(lat, lon)}<br>`;
+
+          let markerData = vesselMarkers[mmsi];
+          if (!markerData) {
+            const el = document.createElement('div');
+            el.className = "vessel-svg-icon";
+            el.innerHTML = svgIcon;
+            const popup = new maplibregl.Popup({ offset: 20 }).setHTML(popupHtml);
+            const marker = new maplibregl.Marker({ element: el })
+              .setLngLat([lon, lat])
+              .setPopup(popup)
+              .addTo(map);
+            vesselMarkers[mmsi] = { marker, element: el };
+          } else {
+            markerData.element.innerHTML = svgIcon;
+            markerData.marker.setLngLat([lon, lat]);
+            if (markerData.marker.getPopup()) {
+              markerData.marker.getPopup().setHTML(popupHtml);
+            }
+          }
+        });
+
+        // Ensimmäisellä kerralla zoomataan lähemmäs johonkin alukseen (jos löytyy)
+        if (firstCenter && anyPosition) {
+          map.flyTo({ center: anyPosition, zoom: 8, essential: true });
+          firstCenter = false;
+        }
+      } catch (err) {
+        console.error("AIS data fetch failed:", err);
+      } finally {
+        loading = false;
+      }
+    }
+
+    // Käynnistetään kun kartta on ladattu
+    map.on('load', () => {
+      loadMmsiCountry(() => {
+        loadUnlocode(() => {
+          loadAis();
+          setInterval(loadAis, 60 * 1000);
+        });
+      });
+    });
+  </script>
+</body>
+</html>
