@@ -23,9 +23,6 @@
     .vessel-svg-icon {
       background: none !important;
       border: none !important;
-      /* Salli skaalaus */
-      will-change: transform;
-      display: inline-block;
     }
     .attribution {
       position: fixed;
@@ -323,13 +320,6 @@
       `;
     }
 
-    // Skaalausfunktio
-    function getPerspectiveScale() {
-      const pitch = map.getPitch();
-      // Skaalaa 1.0 ... 0.5 kun pitch kasvaa 0 -> 60 astetta (voit säätää)
-      return 1 - (Math.min(pitch, 60) / 120);
-    }
-
     // --- MapLibre (pseudo-3D) ---
     const map = new maplibregl.Map({
       container: 'map',
@@ -426,8 +416,6 @@
         // Luo/päivitä markkerit
         let anyPosition = null;
 
-        const scale = getPerspectiveScale();
-
         data.features.forEach(feature => {
           const props = feature.properties || {};
           const mmsi = props.mmsi || feature.mmsi;
@@ -452,8 +440,10 @@
 
           const shipType = meta.shipType;
           const color = shipTypeColor(shipType);
-
-          const svgIcon = vesselSvg(speed, angle, color);
+          const mapBearing = map.getBearing();
+          // *** TÄRKEÄ KOHTA: visualAngle ottaa huomioon kartan bearingin ***
+          const visualAngle = ((angle - mapBearing + 360) % 360);
+          const svgIcon = vesselSvg(speed, visualAngle, color);
           const name = meta.name || props.name || "Unknown vessel";
 
           let popupHtml = "";
@@ -505,17 +495,16 @@
             const el = document.createElement('div');
             el.className = "vessel-svg-icon";
             el.innerHTML = svgIcon;
-            el.style.transform = `scale(${scale})`;
             const popup = new maplibregl.Popup({ offset: 20 }).setHTML(popupHtml);
             const marker = new maplibregl.Marker({ element: el })
               .setLngLat([lon, lat])
               .setPopup(popup)
               .addTo(map);
+            // *** Tallennetaan viimeisin kulma, nopeus ja väri markerDataan ***
             vesselMarkers[mmsi] = { marker, element: el, lastAngle: angle, lastSpeed: speed, color: color };
           } else {
             markerData.element.innerHTML = svgIcon;
             markerData.marker.setLngLat([lon, lat]);
-            markerData.element.style.transform = `scale(${scale})`;
             if (markerData.marker.getPopup()) {
               markerData.marker.getPopup().setHTML(popupHtml);
             }
@@ -537,13 +526,13 @@
       }
     }
 
-    // --- Laivojen ikonit päivittyvät kartan pyöriessä ja kallistuessa ---
+    // --- Laivojen ikonit päivittyvät kartan pyöriessä ---
     function updateAllVesselIcons() {
-      const scale = getPerspectiveScale();
+      const mapBearing = map.getBearing();
       Object.entries(vesselMarkers).forEach(([mmsi, markerData]) => {
         if (markerData.lastAngle !== undefined && markerData.lastSpeed !== undefined && markerData.color) {
-          markerData.element.innerHTML = vesselSvg(markerData.lastSpeed, markerData.lastAngle, markerData.color);
-          markerData.element.style.transform = `scale(${scale})`;
+          const visualAngle = ((markerData.lastAngle - mapBearing + 360) % 360);
+          markerData.element.innerHTML = vesselSvg(markerData.lastSpeed, visualAngle, markerData.color);
         }
       });
     }
@@ -561,7 +550,6 @@
     // Päivitä ikonit kun karttaa pyöritetään tai kallistetaan
     map.on('rotate', updateAllVesselIcons);
     map.on('pitch', updateAllVesselIcons);
-    map.on('zoom', updateAllVesselIcons); // jos haluat zoomin vaikuttavan skaalaan
 
   </script>
 </body>
