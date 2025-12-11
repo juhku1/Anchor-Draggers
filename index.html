@@ -95,6 +95,45 @@
         transparent 60%
       );
     }
+
+    /* Tilastopaneeli oikeaan alakulmaan */
+    .stats-panel {
+      position: fixed;
+      right: 8px;
+      bottom: 8px;
+      z-index: 2001;
+      background: rgba(5, 8, 18, 0.96);
+      color: #eee;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 11px;
+      max-width: 420px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+      border: 1px solid rgba(0, 234, 255, 0.2);
+    }
+    .stats-header {
+      font-weight: 600;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: #00eaff;
+      margin-bottom: 4px;
+      opacity: 0.9;
+    }
+    .stats-row {
+      margin-bottom: 3px;
+      line-height: 1.35;
+    }
+    .stats-row strong {
+      font-weight: 600;
+    }
+    .stats-small {
+      font-size: 10px;
+      max-height: 90px;
+      overflow-y: auto;
+      margin-top: 2px;
+      padding-left: 2px;
+    }
   </style>
 </head>
 <body>
@@ -170,9 +209,19 @@
       </text>
     </svg>
   </div>
+
   <div id="map"></div>
   <div class="sky-overlay"></div>
   <div class="ground-vignette"></div>
+
+  <!-- Tilastopaneeli pohjalla -->
+  <div id="stats-panel" class="stats-panel">
+    <div class="stats-header">Live traffic summary</div>
+    <div id="stats-content" class="stats-body">
+      Initializing…
+    </div>
+  </div>
+
   <div class="attribution">
     AIS data © 
     <a href="https://www.fintraffic.fi/en/fintraffic/digitraffic" target="_blank" rel="noopener">
@@ -187,6 +236,7 @@
     (ODC PDDL).
     Flags © <a href="https://flagcdn.com" target="_blank" rel="noopener">Flagpedia / flagcdn.com</a>.
   </div>
+
   <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
   <script>
     const DIGITRAFFIC_USER = "JuhaMatti/AISMapLibreDemo";
@@ -426,6 +476,88 @@
       `;
     }
 
+    // --- Tilastot (rekisteröintimaat, kohdesatamat, laivatyypit) ---
+    const stats = {
+      total: 0,
+      byCountry: {},
+      byType: {},
+      byDestination: {}
+    };
+
+    function resetStats() {
+      stats.total = 0;
+      stats.byCountry = {};
+      stats.byType = {};
+      stats.byDestination = {};
+    }
+
+    function registerVesselForStats(countryName, typeName, destinationLabel) {
+      stats.total += 1;
+
+      const cKey = countryName && countryName !== "–" ? countryName : "Unknown";
+      const tKey = typeName || "Unknown";
+
+      if (!stats.byCountry[cKey]) stats.byCountry[cKey] = 0;
+      stats.byCountry[cKey] += 1;
+
+      if (!stats.byType[tKey]) stats.byType[tKey] = 0;
+      stats.byType[tKey] += 1;
+
+      if (destinationLabel) {
+        if (!stats.byDestination[destinationLabel]) stats.byDestination[destinationLabel] = 0;
+        stats.byDestination[destinationLabel] += 1;
+      }
+    }
+
+    function updateStatsPanel() {
+      const el = document.getElementById("stats-content");
+      if (!el) return;
+
+      if (stats.total === 0) {
+        el.innerHTML = "No vessels on the map in the last fetch.";
+        return;
+      }
+
+      const countryEntries = Object.entries(stats.byCountry)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+
+      const typeEntries = Object.entries(stats.byType)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+
+      const destinationEntries = Object.entries(stats.byDestination)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+
+      let html = "";
+      html += `<div class="stats-row"><strong>Vessels on map:</strong> ${stats.total}</div>`;
+
+      if (countryEntries.length) {
+        const countryText = countryEntries
+          .map(([c, n]) => `${c} (${n})`)
+          .join(", ");
+        html += `<div class="stats-row"><strong>By flag:</strong> ${countryText}</div>`;
+      }
+
+      if (typeEntries.length) {
+        const typeText = typeEntries
+          .map(([t, n]) => `${t} (${n})`)
+          .join(", ");
+        html += `<div class="stats-row"><strong>By ship type:</strong> ${typeText}</div>`;
+      }
+
+      if (destinationEntries.length) {
+        const destText = destinationEntries
+          .map(([d, n]) => `${d} (${n})`)
+          .join("<br>");
+        html += `<div class="stats-row"><strong>Top destinations:</strong></div>`;
+        html += `<div class="stats-small">${destText}</div>`;
+      }
+
+      el.innerHTML = html;
+    }
+
     // --- MapLibre (pseudo-3D, mutta aina pohjoinen ylös) ---
     const map = new maplibregl.Map({
       container: 'map',
@@ -494,7 +626,11 @@
         const data = await res.json();
         console.log("AIS features:", data.features ? data.features.length : 0);
 
-        // Lasketaan liikepohjainen nopeus
+        resetStats();
+
+        const latestByMmsi = {};
+
+        // Lasketaan liikepohjainen nopeus ja talletetaan uusin feature per MMSI
         data.features.forEach(feature => {
           const props = feature.properties || {};
           const mmsi = props.mmsi || feature.mmsi;
@@ -504,6 +640,7 @@
           const sog = (typeof props.sog === "number" ? props.sog : undefined);
           let calcSpeedKnots = null;
           const tsExt = props.timestampExternal;
+
           if (typeof tsExt === "number") {
             const prev = vesselState[mmsi];
             if (prev) {
@@ -523,15 +660,19 @@
               lastCalcSpeedKnots: calcSpeedKnots
             };
           }
+
+          // Päivitetään "uusin feature" tälle MMSI:lle
+          latestByMmsi[mmsi] = feature;
         });
 
-        // Luo/päivitä markkerit
+        // Luo/päivitä markkerit ja kerää tilastot (vain yksi per MMSI)
         let anyPosition = null;
 
-        data.features.forEach(feature => {
+        Object.values(latestByMmsi).forEach(feature => {
           const props = feature.properties || {};
           const mmsi = props.mmsi || feature.mmsi;
           if (!mmsi) return;
+
           const lat = feature.geometry.coordinates[1];
           const lon = feature.geometry.coordinates[0];
           anyPosition = anyPosition || [lon, lat];
@@ -558,22 +699,32 @@
           const svgIcon = vesselSvg(speed, visualAngle, color);
           const name = meta.name || props.name || "Unknown vessel";
 
-          let popupHtml = "";
-          popupHtml += `<strong>${safe(name)}</strong><br>`;
-          popupHtml += `<strong>MMSI:</strong> ${safe(mmsi)}<br>`;
-
           const regCountry = getMmsiCountry(mmsi) || "–";
           const regIso2 = getCountryIso2FromMmsiCountry(regCountry);
           const regFlag = regIso2 ? flagImgTag(regIso2) : "";
+
+          const typeName = shipTypeName(shipType);
+
+          let destLabel = null;
+          if (meta.destination) {
+            const decoded = decodeDestination(meta.destination);
+            destLabel = decoded || meta.destination;
+          }
+
+          // Rekisteröidään tilastoihin
+          registerVesselForStats(regCountry, typeName, destLabel);
+
+          let popupHtml = "";
+          popupHtml += `<strong>${safe(name)}</strong><br>`;
+          popupHtml += `<strong>MMSI:</strong> ${safe(mmsi)}<br>`;
           popupHtml += `<strong>Flag state:</strong> ${regCountry} ${regFlag}<br>`;
 
           if (meta.imo) popupHtml += `<strong>IMO:</strong> ${meta.imo}<br>`;
           if (meta.callSign) popupHtml += `<strong>Callsign:</strong> ${meta.callSign}<br>`;
 
           if (meta.destination) {
-            const decoded = decodeDestination(meta.destination);
-            if (decoded) {
-              popupHtml += `<strong>Destination:</strong> ${meta.destination} (${decoded})<br>`;
+            if (destLabel && destLabel !== meta.destination) {
+              popupHtml += `<strong>Destination:</strong> ${meta.destination} (${destLabel})<br>`;
             } else {
               popupHtml += `<strong>Destination:</strong> ${meta.destination}<br>`;
             }
@@ -583,7 +734,7 @@
             popupHtml += `<strong>Draft:</strong> ${formatMeters(meta.draught / 10)}<br>`;
           }
           if (shipType !== undefined) {
-            popupHtml += `<strong>Ship type:</strong> ${shipTypeName(shipType)} (${shipType})<br>`;
+            popupHtml += `<strong>Ship type:</strong> ${typeName} (${shipType})<br>`;
           }
 
           popupHtml += `<hr style="margin:4px 0;">`;
@@ -624,6 +775,9 @@
             markerData.color = color;
           }
         });
+
+        // Päivitä tilastopaneeli kaiken käsittelyn jälkeen
+        updateStatsPanel();
 
         // Ensimmäisellä kerralla zoomataan lähemmäs johonkin alukseen (jos löytyy)
         if (firstCenter && anyPosition) {
