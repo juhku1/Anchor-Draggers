@@ -129,40 +129,39 @@ async function loadAis() {
       const { cKey, tKey } = registerVesselForStats(regCountry, typeName, destLabel);
 
       // Build popup HTML
-      let popupHtml = "";
-      popupHtml += `<strong>${safe(name)}</strong><br>`;
-      popupHtml += `<strong>MMSI:</strong> ${safe(mmsi)}<br>`;
-      popupHtml += `<strong>Flag state:</strong> ${regCountry} ${regFlag}<br>`;
-      if (meta.imo) popupHtml += `<strong>IMO:</strong> ${meta.imo}<br>`;
-      if (meta.callSign) popupHtml += `<strong>Callsign:</strong> ${meta.callSign}<br>`;
+      let popupHtml = `<div class="vessel-popup">`;
+      popupHtml += `<div class="popup-header">`;
+      popupHtml += `<div class="popup-title">${safe(name)}</div>`;
+      popupHtml += `<div class="popup-subtitle">${typeName}</div>`;
+      popupHtml += `</div>`;
+      
+      popupHtml += `<div class="popup-section">`;
+      popupHtml += `<div class="popup-row"><span class="label">MMSI:</span><span class="value">${safe(mmsi)}</span></div>`;
+      popupHtml += `<div class="popup-row"><span class="label">Flag:</span><span class="value">${regCountry} ${regFlag}</span></div>`;
+      if (meta.imo) popupHtml += `<div class="popup-row"><span class="label">IMO:</span><span class="value">${meta.imo}</span></div>`;
+      if (meta.callSign) popupHtml += `<div class="popup-row"><span class="label">Call:</span><span class="value">${meta.callSign}</span></div>`;
       if (meta.destination) {
-        if (destLabel && destLabel !== meta.destination) {
-          popupHtml += `<strong>Destination:</strong> ${meta.destination} (${destLabel})<br>`;
-        } else {
-          popupHtml += `<strong>Destination:</strong> ${meta.destination}<br>`;
-        }
+        const dest = (destLabel && destLabel !== meta.destination) ? `${meta.destination} (${destLabel})` : meta.destination;
+        popupHtml += `<div class="popup-row"><span class="label">Dest:</span><span class="value">${dest}</span></div>`;
       }
+      popupHtml += `</div>`;
+      
+      popupHtml += `<div class="popup-section">`;
+      popupHtml += `<div class="popup-row"><span class="label">SOG:</span><span class="value">${formatKnots(sog)} / ${formatKnots(calcSpeedKnots)}</span></div>`;
+      if (props.cog !== undefined) popupHtml += `<div class="popup-row"><span class="label">COG:</span><span class="value">${props.cog}°</span></div>`;
+      if (props.heading !== undefined) popupHtml += `<div class="popup-row"><span class="label">HDG:</span><span class="value">${props.heading}°</span></div>`;
       if (typeof meta.draught === "number") {
-        popupHtml += `<strong>Draft:</strong> ${formatMeters(meta.draught / 10)}<br>`;
+        popupHtml += `<div class="popup-row"><span class="label">Draft:</span><span class="value">${formatMeters(meta.draught / 10)}</span></div>`;
       }
-      if (shipType !== undefined) {
-        popupHtml += `<strong>Ship type:</strong> ${typeName} (${shipType})<br>`;
-      }
-      popupHtml += `<hr style="margin:4px 0;">`;
-      popupHtml += `<strong>Reported SOG:</strong> ${formatKnots(sog)}<br>`;
-      popupHtml += `<strong>Calculated speed:</strong> ${formatKnots(calcSpeedKnots)}<br>`;
-      if (props.cog !== undefined) popupHtml += `<strong>COG:</strong> ${props.cog}&deg;<br>`;
-      if (props.heading !== undefined) popupHtml += `<strong>Heading:</strong> ${props.heading}&deg;<br>`;
-      if (props.navStat !== undefined) popupHtml += `<strong>Nav status code:</strong> ${props.navStat}<br>`;
-      if (props.posAcc !== undefined) popupHtml += `<strong>Position accuracy:</strong> ${props.posAcc ? "high" : "low"}<br>`;
-      if (props.raim !== undefined) popupHtml += `<strong>RAIM:</strong> ${props.raim ? "on" : "off"}<br>`;
-      if (props.rot !== undefined) popupHtml += `<strong>ROT:</strong> ${props.rot}<br>`;
       if (typeof props.timestampExternal === "number") {
-        popupHtml += `<strong>Last update:</strong> ${formatTimestampMs(props.timestampExternal)}<br>`;
-      } else if (props.timestamp !== undefined) {
-        popupHtml += `<strong>Timestamp (AIS UTC sec):</strong> ${props.timestamp}<br>`;
+        popupHtml += `<div class="popup-row"><span class="label">Update:</span><span class="value">${formatTimestampMs(props.timestampExternal)}</span></div>`;
       }
-      popupHtml += `<strong>Position:</strong> ${formatLatLon(lat, lon)}<br>`;
+      popupHtml += `</div>`;
+      
+      popupHtml += `<button class="popup-track-btn" onclick="toggleVesselTrack(${mmsi}, '${color}'); event.stopPropagation();">`;
+      popupHtml += `<span class="track-icon">━━━</span> Show 24h Track`;
+      popupHtml += `</button>`;
+      popupHtml += `</div>`;
 
       // Create or update marker
       let markerData = vesselMarkers[mmsi];
