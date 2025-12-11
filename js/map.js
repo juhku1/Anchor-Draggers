@@ -51,10 +51,9 @@ map.on('load', () => {
 
 async function fetchTerritorialWaters() {
   try {
-    // OpenStreetMap maritime boundaries for Baltic Sea (pre-processed GeoJSON)
-    // Source: OSM boundary=maritime features via Overpass API
-    // License: ODbL (Open Database License) - requires attribution and share-alike
-    // Includes territorial waters, baselines, EEZ boundaries for all Baltic countries
+    // Load HELCOM territorial waters dataset (12 nautical miles boundaries)
+    // Source: HELCOM (European Environment Agency + OpenStreetMap + Swedish Maritime Administration)
+    // Data: https://metadata.helcom.fi/geonetwork/srv/eng/catalog.search#/metadata/8a393266-519d-4eaa-a94b-b67f9f589744
     
     const response = await fetch('baltic_maritime_boundaries.geojson');
     if (!response.ok) {
@@ -63,7 +62,7 @@ async function fetchTerritorialWaters() {
     }
     
     const geojson = await response.json();
-    console.log('OSM maritime boundaries loaded:', geojson.features?.length, 'features');
+    console.log('HELCOM territorial waters loaded:', geojson.features?.length, 'features');
     
     // Update source with fetched data
     if (map.getSource('territorial-waters')) {
