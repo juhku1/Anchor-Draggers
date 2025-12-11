@@ -52,6 +52,7 @@ map.on('load', () => {
 async function fetchTerritorialWaters() {
   try {
     // Traficom WFS service for maritime boundaries (aluevesien rajat)
+    // This includes: territorial sea (12 NM), internal waters, EEZ, and national borders at sea
     const wfsUrl = 'https://julkinen.traficom.fi/inspirepalvelu/avoin/wfs';
     const params = new URLSearchParams({
       service: 'WFS',
@@ -64,32 +65,44 @@ async function fetchTerritorialWaters() {
     
     const response = await fetch(`${wfsUrl}?${params}`);
     if (!response.ok) {
-      console.warn('Failed to fetch territorial waters, using fallback');
+      console.warn('Failed to fetch territorial waters from Traficom');
       return;
     }
     
     const geojson = await response.json();
+    console.log('Territorial waters data received:', geojson.features?.length, 'features');
     
     // Update source with fetched data
     if (map.getSource('territorial-waters')) {
       map.getSource('territorial-waters').setData(geojson);
       
       // Add line layer for territorial waters boundary
+      // Layer added early so it appears UNDER vessel/buoy markers
       if (!map.getLayer('territorial-waters-line')) {
+        // Find the first symbol layer to insert boundary lines before it
+        const layers = map.getStyle().layers;
+        let firstSymbolId;
+        for (const layer of layers) {
+          if (layer.type === 'symbol') {
+            firstSymbolId = layer.id;
+            break;
+          }
+        }
+        
         map.addLayer({
           id: 'territorial-waters-line',
           type: 'line',
           source: 'territorial-waters',
           paint: {
             'line-color': '#00eaff',
-            'line-width': 2,
-            'line-opacity': 0.6,
-            'line-dasharray': [3, 2]
+            'line-width': 1.5,
+            'line-opacity': 0.4,
+            'line-dasharray': [4, 3]
           }
-        });
+        }, firstSymbolId); // Insert before first symbol layer (labels, markers will be on top)
       }
       
-      console.log('Territorial waters boundary loaded');
+      console.log('Territorial waters boundary layer added (under markers)');
     }
   } catch (error) {
     console.error('Error loading territorial waters:', error);
