@@ -9,7 +9,7 @@ import { vesselMarkers } from './map.js';
 // Ship Type Classification
 // ============================================================================
 
-function shipTypeColor(shipType) {
+export function shipTypeColor(shipType) {
   if (shipType === undefined || shipType === null) return "#888";
   if (shipType >= 60 && shipType < 70) return "#3a9eea";  // Passenger
   if (shipType >= 70 && shipType < 80) return "#f3c300";  // Cargo
@@ -21,7 +21,7 @@ function shipTypeColor(shipType) {
   return "#888";
 }
 
-function shipTypeName(shipType) {
+export function shipTypeName(shipType) {
   if (shipType === undefined || shipType === null) return "Unknown";
   if (shipType >= 20 && shipType < 30) return "Wing-in-ground/Tug/Pusher";
   if (shipType >= 30 && shipType < 40) return "Fishing";
