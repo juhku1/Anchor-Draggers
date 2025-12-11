@@ -77,7 +77,7 @@ def fetch_vessel_metadata(mmsi_list):
         return {}
 
 def filter_vessels(data):
-    """Filter vessels within Baltic Sea region"""
+    """Filter moving vessels within Baltic Sea region"""
     if not data or 'features' not in data:
         return []
     
@@ -85,10 +85,13 @@ def filter_vessels(data):
     for feature in data['features']:
         coords = feature['geometry']['coordinates']
         lon, lat = coords[0], coords[1]
+        props = feature['properties']
+        sog = props.get('sog', 0)
         
-        # Check if within bounding box
+        # Check if within bounding box AND moving (SOG > 0.5 knots)
         if (BBOX['min_lon'] <= lon <= BBOX['max_lon'] and 
-            BBOX['min_lat'] <= lat <= BBOX['max_lat']):
+            BBOX['min_lat'] <= lat <= BBOX['max_lat'] and
+            sog > 0.5):
             filtered.append(feature)
     
     return filtered
