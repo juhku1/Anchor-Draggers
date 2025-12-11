@@ -301,15 +301,27 @@ async function loadAis() {
 // ============================================================================
 
 function createBuoyMarker(buoy) {
-  // Create custom buoy icon
+  // Create custom buoy icon (yellow half-sphere with antenna)
   const el = document.createElement('div');
   el.className = 'buoy-marker';
-  el.innerHTML = '🌊';
-  el.style.fontSize = '24px';
+  el.innerHTML = `
+    <svg width="32" height="40" viewBox="0 0 32 40" xmlns="http://www.w3.org/2000/svg">
+      <!-- Antenna/pole -->
+      <line x1="16" y1="8" x2="16" y2="1" stroke="#333" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="16" cy="0.5" r="1.5" fill="#ff6b00"/>
+      
+      <!-- Buoy body (half sphere) -->
+      <ellipse cx="16" cy="16" rx="12" ry="8" fill="#ffcc00" stroke="#cc9900" stroke-width="1.5"/>
+      <ellipse cx="16" cy="15" rx="12" ry="6" fill="#ffe666"/>
+      
+      <!-- Shading for 3D effect -->
+      <ellipse cx="16" cy="14" rx="8" ry="4" fill="#fff" opacity="0.3"/>
+    </svg>
+  `;
   el.style.cursor = 'pointer';
   el.style.userSelect = 'none';
   
-  const marker = new maplibregl.Marker({ element: el })
+  const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
     .setLngLat([buoy.lon, buoy.lat]);
   
   // Create popup
