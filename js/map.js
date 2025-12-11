@@ -35,29 +35,29 @@ if (map.touchZoomRotate && map.touchZoomRotate.disableRotation) {
 // ============================================================================
 
 map.on('load', () => {
-  // Add territorial sea boundary (12 nautical miles) from Maanmittauslaitos
-  // Using WMS service as GeoJSON source
+  // Add territorial sea boundary (12 nautical miles) from Traficom
+  // Official maritime boundaries from Finnish Transport and Communications Agency
   map.addSource('territorial-waters', {
     type: 'geojson',
     data: {
       type: 'FeatureCollection',
-      features: [] // Will be populated from WMS or static GeoJSON
+      features: [] // Will be populated from WFS
     }
   });
   
-  // Fetch territorial waters boundary from Maanmittauslaitos WFS
+  // Fetch territorial waters boundary from Traficom WFS
   fetchTerritorialWaters();
 });
 
 async function fetchTerritorialWaters() {
   try {
-    // Maanmittauslaitos WFS service for territorial sea baseline
-    const wfsUrl = 'https://avoin-karttakuva.maanmittauslaitos.fi/avoin/wfs';
+    // Traficom WFS service for maritime boundaries (aluevesien rajat)
+    const wfsUrl = 'https://julkinen.traficom.fi/inspirepalvelu/avoin/wfs';
     const params = new URLSearchParams({
       service: 'WFS',
       version: '2.0.0',
       request: 'GetFeature',
-      typeName: 'rajoitusalueet:aluevesi_12mpk', // 12 nautical miles territorial waters
+      typeName: 'au:AdministrativeBoundary', // INSPIRE administrative boundaries
       outputFormat: 'application/json',
       srsName: 'EPSG:4326'
     });
