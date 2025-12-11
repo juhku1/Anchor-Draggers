@@ -648,3 +648,60 @@ html, body {
     box-shadow: 0 4px 20px rgba(0, 234, 255, 0.8);
   }
 }
+
+/* ============================================================================
+   Buoy Markers
+   ============================================================================ */
+
+.buoy-marker {
+  filter: drop-shadow(0 0 4px rgba(0, 234, 255, 0.6));
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.buoy-marker:hover {
+  transform: scale(1.2);
+  filter: drop-shadow(0 0 8px rgba(0, 234, 255, 0.9));
+}
+
+.buoy-popup {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  max-width: 280px;
+}
+
+.buoy-popup .popup-header {
+  font-size: 15px;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(0, 234, 255, 0.3);
+  color: #00eaff;
+}
+
+.buoy-popup .popup-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 13px;
+}
+
+.buoy-popup .popup-row .label {
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+}
+
+.buoy-popup .popup-row .value {
+  color: #fff;
+  font-weight: 600;
+}
+
+.buoy-popup .popup-footer {
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(0, 234, 255, 0.2);
+  text-align: right;
+}
+
+.buoy-popup .popup-footer small {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 11px;
+}
+

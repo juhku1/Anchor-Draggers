@@ -1,7 +1,9 @@
 /**
  * Map initialization and main logic
- * Handles MapLibre GL setup, vessel markers, and real-time updates
+ * Handles MapLibre GL setup, vessel markers, buoy markers, and real-time updates
  */
+
+import { initBuoyData, getBuoyData, formatBuoyPopup } from './fmi.js';
 
 // ============================================================================
 // Map Setup
@@ -32,6 +34,7 @@ if (map.touchZoomRotate && map.touchZoomRotate.disableRotation) {
 let loading = false;
 const vesselState = {};
 const vesselMarkers = {};
+const buoyMarkers = {};
 let firstCenter = true;
 
 // ============================================================================
@@ -294,14 +297,65 @@ async function loadAis() {
 }
 
 // ============================================================================
+// Buoy Management
+// ============================================================================
+
+function createBuoyMarker(buoy) {
+  // Create custom buoy icon
+  const el = document.createElement('div');
+  el.className = 'buoy-marker';
+  el.innerHTML = '🌊';
+  el.style.fontSize = '24px';
+  el.style.cursor = 'pointer';
+  el.style.userSelect = 'none';
+  
+  const marker = new maplibregl.Marker({ element: el })
+    .setLngLat([buoy.lon, buoy.lat]);
+  
+  // Create popup
+  const popup = new maplibregl.Popup({ offset: 25 })
+    .setHTML(formatBuoyPopup(buoy));
+  
+  marker.setPopup(popup);
+  marker.addTo(map);
+  
+  return marker;
+}
+
+function updateBuoyMarkers(buoyData) {
+  // Remove old markers
+  Object.values(buoyMarkers).forEach(marker => marker.remove());
+  
+  // Clear the object
+  for (let key in buoyMarkers) {
+    delete buoyMarkers[key];
+  }
+  
+  // Add new markers
+  buoyData.forEach(buoy => {
+    const marker = createBuoyMarker(buoy);
+    buoyMarkers[buoy.name] = marker;
+  });
+  
+  console.log(`Updated ${buoyData.length} buoy markers`);
+}
+
+// Make updateBuoyMarkers available globally for FMI module
+window.updateBuoyMarkers = updateBuoyMarkers;
+
+// ============================================================================
 // Initialization
 // ============================================================================
 
-map.on('load', () => {
+map.on('load', async () => {
   loadMmsiCountry(() => {
     loadUnlocode(() => {
       loadAis();
       setInterval(loadAis, 60 * 1000);
     });
   });
+  
+  // Initialize buoy data
+  const buoyData = await initBuoyData();
+  updateBuoyMarkers(buoyData);
 });
