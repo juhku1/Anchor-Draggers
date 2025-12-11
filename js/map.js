@@ -45,8 +45,20 @@ map.on('load', () => {
     }
   });
   
-  // Fetch territorial waters boundary from Traficom WFS
+  // Add territorial labels source
+  map.addSource('territorial-labels', {
+    type: 'geojson',
+    data: {
+      type: 'FeatureCollection',
+      features: []
+    }
+  });
+  
+  // Fetch territorial waters boundary from HELCOM
   fetchTerritorialWaters();
+  
+  // Load territorial labels
+  loadTerritorialLabels();
 });
 
 async function fetchTerritorialWaters() {
@@ -98,6 +110,52 @@ async function fetchTerritorialWaters() {
     }
   } catch (error) {
     console.error('Error loading territorial waters:', error);
+  }
+}
+
+async function loadTerritorialLabels() {
+  try {
+    const response = await fetch('territorial_labels.geojson');
+    if (!response.ok) {
+      console.warn('Failed to fetch territorial labels');
+      return;
+    }
+    
+    const geojson = await response.json();
+    
+    if (map.getSource('territorial-labels')) {
+      map.getSource('territorial-labels').setData(geojson);
+      
+      // Add text layer for territorial water labels
+      if (!map.getLayer('territorial-labels-text')) {
+        map.addLayer({
+          id: 'territorial-labels-text',
+          type: 'symbol',
+          source: 'territorial-labels',
+          layout: {
+            'text-field': ['get', 'name_fi'],
+            'text-font': ['Noto Sans Regular'],
+            'text-size': 18,
+            'text-letter-spacing': 0.3,
+            'text-transform': 'uppercase',
+            'text-allow-overlap': false,
+            'text-pitch-alignment': 'viewport', // Text stays upright when map tilts
+            'text-rotation-alignment': 'viewport' // Text rotates with map rotation
+          },
+          paint: {
+            'text-color': '#00eaff',
+            'text-opacity': 0.4,
+            'text-halo-color': '#001a33',
+            'text-halo-width': 2,
+            'text-halo-blur': 1
+          }
+        });
+        
+        console.log('Territorial labels added');
+      }
+    }
+  } catch (error) {
+    console.error('Error loading territorial labels:', error);
   }
 }
 

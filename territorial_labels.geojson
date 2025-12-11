@@ -1,0 +1,49 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "FINNISH WATERS",
+        "name_fi": "SUOMEN ALUEVESI"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [24.5, 60.5]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "SWEDISH WATERS",
+        "name_fi": "RUOTSIN ALUEVESI"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [19.5, 60.5]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "ESTONIAN WATERS",
+        "name_fi": "VIRON ALUEVESI"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [23.5, 58.8]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "RUSSIAN WATERS",
+        "name_fi": "VENÄJÄN ALUEVESI"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [28.0, 60.0]
+      }
+    }
+  ]
+}
