@@ -1,0 +1,3 @@
+# Ignore large data files from git (optional - uncomment if repo grows too large)
+# data/ais/**/*.json
+# !data/ais/latest.json
