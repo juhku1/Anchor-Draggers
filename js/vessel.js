@@ -401,16 +401,16 @@ async function loadAis(map) {
       // Build popup HTML
       let popupHtml = `<div class="vessel-popup">`;
       
+      // Header: Name and status
       popupHtml += `<div class="popup-header">`;
-      popupHtml += `<div class="popup-title">`;
-      popupHtml += `<span>${name}</span>`;
+      popupHtml += `<div class="popup-title">${name}</div>`;
       if (navStatText) {
-        popupHtml += `<span style="float:right;white-space:nowrap"><span class="status-dot" style="background:${navStatColor}"></span>${navStatText}</span>`;
+        popupHtml += `<div style="margin-top:4px"><span class="status-dot" style="background:${navStatColor}"></span> ${navStatText}</div>`;
       }
-      popupHtml += `</div>`;
-      popupHtml += `<div class="popup-subtitle">${typeName}, ${regCountry}, ${regFlag}</div>`;
+      popupHtml += `<div class="popup-subtitle" style="margin-top:6px">${typeName} · ${regCountry} ${regFlag}</div>`;
       popupHtml += `</div>`;
       
+      // Main info section
       popupHtml += `<div class="popup-section popup-scrollable">`;
       
       if (meta.destination) {
@@ -432,21 +432,24 @@ async function loadAis(map) {
         popupHtml += `<div class="popup-row"><span class="label">Draft:</span><span class="value">${formatMeters(meta.draught / 10)}</span></div>`;
       }
       
-      if (updateFormatted) {
-        popupHtml += `<div class="popup-row"><span class="label">Update:</span><span class="value">${updateFormatted}</span></div>`;
-      }
-      
-      popupHtml += `<div class="popup-section">`;
-      
       if (props.heading !== undefined && props.heading !== 511) {
         popupHtml += `<div class="popup-row"><span class="label">Heading:</span><span class="value">${props.heading}°</span></div>`;
+      }
+      
+      popupHtml += `</div>`;
+      
+      // Technical details section
+      popupHtml += `<div class="popup-section" style="padding-top:8px;border-top:1px solid rgba(255,255,255,0.1)">`;
+      
+      popupHtml += `<div class="popup-row"><span class="value">${formatLatLon(lat, lon)}</span></div>`;
+      
+      if (updateFormatted) {
+        popupHtml += `<div class="popup-row" style="margin-top:6px"><span class="label">Updated:</span><span class="value">${updateFormatted}</span></div>`;
       }
       
       if (meta.callSign) {
         popupHtml += `<div class="popup-row"><span class="label">Call Sign:</span><span class="value">${meta.callSign}</span></div>`;
       }
-      
-      popupHtml += `<div class="popup-row"><span class="value">${formatLatLon(lat, lon)}</span></div>`;
       
       if (meta.imo) {
         popupHtml += `<div class="popup-row"><span class="label">IMO:</span><span class="value">${meta.imo}</span></div>`;
