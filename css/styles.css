@@ -499,6 +499,62 @@ html, body {
   font-family: 'Courier New', monospace;
 }
 
+.popup-row-flag .value {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.status-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 4px;
+}
+
+.popup-details {
+  margin-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 6px;
+}
+
+.popup-details-toggle {
+  cursor: pointer;
+  font-size: 10px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 4px 0;
+  user-select: none;
+  list-style: none;
+}
+
+.popup-details-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.popup-details-toggle::before {
+  content: "▸ ";
+  color: #00eaff;
+  margin-right: 4px;
+}
+
+.popup-details[open] .popup-details-toggle::before {
+  content: "▾ ";
+}
+
+.popup-details-toggle:hover {
+  color: #00eaff;
+}
+
+.popup-details-content {
+  margin-top: 4px;
+  border-top: none;
+  padding-top: 0;
+}
+
 .popup-track-btn {
   width: 100%;
   padding: 8px;

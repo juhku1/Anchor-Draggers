@@ -130,35 +130,115 @@ async function loadAis() {
 
       const { cKey, tKey } = registerVesselForStats(regCountry, typeName, destLabel);
 
+      // Get navigation status info
+      const navStat = props.navStat;
+      const navStatText = (navStat !== undefined) ? getNavStatText(navStat) : null;
+      const navStatColor = (navStat !== undefined) ? getNavStatColor(navStat) : null;
+      
+      // Format ETA if available
+      const etaText = meta.eta ? formatETA(meta.eta) : null;
+      
+      // Format ROT if available
+      const rotText = (props.rot !== undefined && props.rot !== -128) ? formatROT(props.rot) : null;
+
       // Build popup HTML
       let popupHtml = `<div class="vessel-popup">`;
+      
+      // Header with name and type
       popupHtml += `<div class="popup-header">`;
       popupHtml += `<div class="popup-title">${safe(name)}</div>`;
       popupHtml += `<div class="popup-subtitle">${typeName}</div>`;
       popupHtml += `</div>`;
       
+      // Primary info section
       popupHtml += `<div class="popup-section">`;
-      popupHtml += `<div class="popup-row"><span class="label">MMSI:</span><span class="value">${safe(mmsi)}</span></div>`;
-      popupHtml += `<div class="popup-row"><span class="label">Flag:</span><span class="value">${regCountry} ${regFlag}</span></div>`;
-      if (meta.imo) popupHtml += `<div class="popup-row"><span class="label">IMO:</span><span class="value">${meta.imo}</span></div>`;
-      if (meta.callSign) popupHtml += `<div class="popup-row"><span class="label">Call:</span><span class="value">${meta.callSign}</span></div>`;
-      if (meta.destination) {
-        const dest = (destLabel && destLabel !== meta.destination) ? `${meta.destination} (${destLabel})` : meta.destination;
-        popupHtml += `<div class="popup-row"><span class="label">Dest:</span><span class="value">${dest}</span></div>`;
-      }
+      
+      // Flag with image
+      popupHtml += `<div class="popup-row popup-row-flag">`;
+      popupHtml += `<span class="label">Flag:</span>`;
+      popupHtml += `<span class="value">${regCountry} ${regFlag}</span>`;
       popupHtml += `</div>`;
       
+      // Navigation status with color indicator
+      if (navStatText) {
+        popupHtml += `<div class="popup-row">`;
+        popupHtml += `<span class="label">Status:</span>`;
+        popupHtml += `<span class="value"><span class="status-dot" style="background:${navStatColor}"></span>${navStatText}</span>`;
+        popupHtml += `</div>`;
+      }
+      
+      // Destination
+      if (meta.destination) {
+        const dest = (destLabel && destLabel !== meta.destination) ? `${destLabel}` : meta.destination;
+        popupHtml += `<div class="popup-row"><span class="label">Dest:</span><span class="value">${dest}</span></div>`;
+      }
+      
+      // ETA
+      if (etaText) {
+        popupHtml += `<div class="popup-row"><span class="label">ETA:</span><span class="value">${etaText}</span></div>`;
+      }
+      
+      popupHtml += `</div>`;
+      
+      // Navigation data section
       popupHtml += `<div class="popup-section">`;
-      popupHtml += `<div class="popup-row"><span class="label">SOG:</span><span class="value">${formatKnots(sog)} / ${formatKnots(calcSpeedKnots)}</span></div>`;
-      if (props.cog !== undefined) popupHtml += `<div class="popup-row"><span class="label">COG:</span><span class="value">${props.cog}°</span></div>`;
-      if (props.heading !== undefined) popupHtml += `<div class="popup-row"><span class="label">HDG:</span><span class="value">${props.heading}°</span></div>`;
-      if (typeof meta.draught === "number") {
+      popupHtml += `<div class="popup-row"><span class="label">SOG:</span><span class="value">${formatKnots(sog)}</span></div>`;
+      if (props.cog !== undefined && props.cog !== 360) {
+        popupHtml += `<div class="popup-row"><span class="label">COG:</span><span class="value">${props.cog}°</span></div>`;
+      }
+      if (typeof meta.draught === "number" && meta.draught > 0) {
         popupHtml += `<div class="popup-row"><span class="label">Draft:</span><span class="value">${formatMeters(meta.draught / 10)}</span></div>`;
       }
       if (typeof props.timestampExternal === "number") {
         popupHtml += `<div class="popup-row"><span class="label">Update:</span><span class="value">${formatTimestampMs(props.timestampExternal)}</span></div>`;
       }
       popupHtml += `</div>`;
+      
+      // Additional details (collapsible)
+      let moreDetails = [];
+      
+      if (props.heading !== undefined && props.heading !== 511) {
+        moreDetails.push(`<div class="popup-row"><span class="label">Heading:</span><span class="value">${props.heading}°</span></div>`);
+      }
+      
+      if (meta.callSign) {
+        moreDetails.push(`<div class="popup-row"><span class="label">Call:</span><span class="value">${meta.callSign}</span></div>`);
+      }
+      
+      if (meta.imo) {
+        moreDetails.push(`<div class="popup-row"><span class="label">IMO:</span><span class="value">${meta.imo}</span></div>`);
+      }
+      
+      moreDetails.push(`<div class="popup-row"><span class="label">MMSI:</span><span class="value">${mmsi}</span></div>`);
+      
+      if (rotText) {
+        moreDetails.push(`<div class="popup-row"><span class="label">ROT:</span><span class="value">${rotText}</span></div>`);
+      }
+      
+      if (props.posAcc !== undefined) {
+        const accuracy = props.posAcc ? "High" : "Low";
+        moreDetails.push(`<div class="popup-row"><span class="label">Accuracy:</span><span class="value">${accuracy}</span></div>`);
+      }
+      
+      if (meta.posType !== undefined && meta.posType !== 0) {
+        moreDetails.push(`<div class="popup-row"><span class="label">Pos type:</span><span class="value">${getPosTypeText(meta.posType)}</span></div>`);
+      }
+      
+      if (props.raim !== undefined) {
+        const raim = props.raim ? "On" : "Off";
+        moreDetails.push(`<div class="popup-row"><span class="label">RAIM:</span><span class="value">${raim}</span></div>`);
+      }
+      
+      moreDetails.push(`<div class="popup-row"><span class="label">Position:</span><span class="value">${formatLatLon(lat, lon)}</span></div>`);
+      
+      if (moreDetails.length > 0) {
+        popupHtml += `<details class="popup-details">`;
+        popupHtml += `<summary class="popup-details-toggle">More details...</summary>`;
+        popupHtml += `<div class="popup-section popup-details-content">`;
+        popupHtml += moreDetails.join('');
+        popupHtml += `</div>`;
+        popupHtml += `</details>`;
+      }
       
       popupHtml += `<button class="popup-track-btn" onclick="toggle24hAgoMarker(${mmsi}, [${lon}, ${lat}], '${color}'); event.stopPropagation();">`;
       popupHtml += `<span class="track-icon">⟲</span> Show 24h Ago`;
