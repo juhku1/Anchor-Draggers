@@ -44,7 +44,16 @@ async function fetchBuoyData() {
         const xmlText = await response.text();
         return parseBuoyXMLSimple(xmlText);
     } catch (error) {
-        console.error('Failed to fetch buoy damember is a separate observation
+        console.error('Failed to fetch buoy data:', error);
+        return [];
+    }
+}
+
+function parseBuoyXMLSimple(xmlText) {
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+    
+    // Parse simple observation format - each member is a separate observation
     const members = xmlDoc.getElementsByTagName('wfs:member');
     const buoyLatestData = {};
     
