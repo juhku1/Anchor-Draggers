@@ -5,7 +5,7 @@
       "type": "Feature",
       "properties": {
         "name": "FINNISH WATERS",
-        "name_fi": "SUOMEN ALUEVESI"
+        "name_fi": "FINLAND"
       },
       "geometry": {
         "type": "Point",
@@ -16,7 +16,7 @@
       "type": "Feature",
       "properties": {
         "name": "SWEDISH WATERS",
-        "name_fi": "RUOTSIN ALUEVESI"
+        "name_fi": "SWEDEN"
       },
       "geometry": {
         "type": "Point",
@@ -27,7 +27,7 @@
       "type": "Feature",
       "properties": {
         "name": "ESTONIAN WATERS",
-        "name_fi": "VIRON ALUEVESI"
+        "name_fi": "ESTONIA"
       },
       "geometry": {
         "type": "Point",
@@ -38,7 +38,7 @@
       "type": "Feature",
       "properties": {
         "name": "RUSSIAN WATERS",
-        "name_fi": "VENÄJÄN ALUEVESI"
+        "name_fi": "RUSSIA"
       },
       "geometry": {
         "type": "Point",
