@@ -16,7 +16,7 @@ const map = new maplibregl.Map({
   bearing: 340,  // Northwest direction towards Helsinki
   attributionControl: false,
   maxBounds: [
-    [10.0, 58.0],   // Southwest corner [lng, lat] - prevents going too far south
+    [10.0, 58.5],   // Southwest corner [lng, lat] - prevents going too far south (50km north from 58.0)
     [35.0, 66.0]    // Northeast corner [lng, lat] - covers Baltic Sea region
   ]
 });
