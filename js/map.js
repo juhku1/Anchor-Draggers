@@ -16,7 +16,7 @@ const map = new maplibregl.Map({
   bearing: 340,  // Northwest direction towards Helsinki
   attributionControl: false,
   maxBounds: [
-    [18.0, 58.5],   // Southwest corner [lng, lat] - western limit at Stockholm (18.06°E)
+    [17.0, 58.5],   // Southwest corner [lng, lat] - western limit extended 100km west of Stockholm
     [30.3, 66.0]    // Northeast corner [lng, lat] - eastern limit at St. Petersburg (30.31°E)
   ]
 });
@@ -135,7 +135,7 @@ async function loadTerritorialLabels() {
           layout: {
             'text-field': ['get', 'name'],
             'text-font': ['Noto Sans Regular'],
-            'text-size': 18,
+            'text-size': 27,
             'text-letter-spacing': 0.3,
             'text-transform': 'uppercase',
             'text-allow-overlap': false,
