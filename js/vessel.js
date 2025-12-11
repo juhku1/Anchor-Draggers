@@ -402,13 +402,13 @@ async function loadAis(map) {
       let popupHtml = `<div class="vessel-popup">`;
       
       popupHtml += `<div class="popup-header">`;
-      popupHtml += `<div class="popup-title">${name}</div>`;
-      popupHtml += `<div class="popup-subtitle">`;
-      popupHtml += `${typeName}, ${regCountry}, ${regFlag}`;
+      popupHtml += `<div class="popup-title">`;
+      popupHtml += `<span>${name}</span>`;
       if (navStatText) {
-        popupHtml += `<span style="float:right"><span class="status-dot" style="background:${navStatColor}"></span>${navStatText}</span>`;
+        popupHtml += `<span style="float:right;white-space:nowrap"><span class="status-dot" style="background:${navStatColor}"></span>${navStatText}</span>`;
       }
       popupHtml += `</div>`;
+      popupHtml += `<div class="popup-subtitle">${typeName}, ${regCountry}, ${regFlag}</div>`;
       popupHtml += `</div>`;
       
       popupHtml += `<div class="popup-section popup-scrollable">`;
