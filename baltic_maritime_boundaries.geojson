@@ -99931,6 +99931,49 @@
           ]
         ]
       }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Russia-Finland maritime border (Gulf of Finland)",
+        "border_type": "eez",
+        "source": "Approximated EEZ boundary",
+        "left": "Russia",
+        "right": "Finland"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            27.5,
+            60.15
+          ],
+          [
+            27.7,
+            60.08
+          ],
+          [
+            27.9,
+            60.05
+          ],
+          [
+            28.1,
+            60.02
+          ],
+          [
+            28.3,
+            60.0
+          ],
+          [
+            28.5,
+            59.98
+          ],
+          [
+            28.7,
+            59.96
+          ]
+        ]
+      }
     }
   ]
 }
