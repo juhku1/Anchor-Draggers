@@ -51,38 +51,50 @@ map.on('load', () => {
 
 async function fetchTerritorialWaters() {
   try {
-    // Traficom WFS service for maritime boundaries (aluevesien rajat)
-    // This includes: territorial sea (12 NM), internal waters, and national borders at sea
-    // Using Ahti_Limit_L which contains Finnish territorial/internal water boundaries
-    const wfsUrl = 'https://julkinen.traficom.fi/inspirepalvelu/avoin/wfs';
-    const params = new URLSearchParams({
-      service: 'WFS',
-      version: '2.0.0',
-      request: 'GetFeature',
-      typeName: 'avoin:Ahti_Limit_L', // Ahti territorial waters boundaries
-      outputFormat: 'application/json',
-      srsName: 'EPSG:4326'
-    });
+    // Marine Regions EEZ boundaries - includes all Baltic Sea countries
+    // This GeoJSON contains Exclusive Economic Zones for Finland, Estonia, Sweden, Russia, etc.
+    // Filtered to Baltic Sea region (bounds approximately match our map)
+    const eezUrl = 'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_admin_0_boundary_lines_maritime_indicator.geojson';
     
-    const response = await fetch(`${wfsUrl}?${params}`);
+    const response = await fetch(eezUrl);
     if (!response.ok) {
-      console.warn('Failed to fetch territorial waters from Traficom');
+      console.warn('Failed to fetch maritime boundaries from Natural Earth');
       return;
     }
     
-    const geojson = await response.json();
-    console.log('Territorial waters data received:', geojson.features?.length, 'features');
+    const allData = await response.json();
     
-    // Debug: Check geometry types and coordinate ranges
-    if (geojson.features?.length > 0) {
-      const first = geojson.features[0];
-      console.log('First feature geometry type:', first.geometry?.type);
-      if (first.geometry?.coordinates?.length > 0) {
-        const firstCoord = first.geometry.coordinates[0];
-        const coord = Array.isArray(firstCoord[0]) ? firstCoord[0] : firstCoord;
-        console.log('Sample coordinate:', coord, '(should be [lon, lat])');
-      }
-    }
+    // Filter to only Baltic Sea region (our map bounds: 18-30.3°E, 58.5-66°N)
+    const balticBounds = {
+      west: 17,
+      east: 31,
+      south: 57,
+      north: 67
+    };
+    
+    const balticFeatures = allData.features.filter(feature => {
+      if (!feature.geometry || !feature.geometry.coordinates) return false;
+      
+      // Check if any coordinate is within Baltic Sea bounds
+      const coords = feature.geometry.coordinates;
+      const checkCoords = (coordArray) => {
+        if (typeof coordArray[0] === 'number') {
+          const [lon, lat] = coordArray;
+          return lon >= balticBounds.west && lon <= balticBounds.east &&
+                 lat >= balticBounds.south && lat <= balticBounds.north;
+        }
+        return coordArray.some(c => checkCoords(c));
+      };
+      
+      return checkCoords(coords);
+    });
+    
+    const geojson = {
+      type: 'FeatureCollection',
+      features: balticFeatures
+    };
+    
+    console.log('Maritime boundaries received:', geojson.features?.length, 'features in Baltic region');
     
     // Update source with fetched data
     if (map.getSource('territorial-waters')) {
@@ -106,9 +118,10 @@ async function fetchTerritorialWaters() {
           type: 'line',
           source: 'territorial-waters',
           paint: {
-            'line-color': '#ff0000',  // Bright red for visibility testing
-            'line-width': 3,           // Thicker for visibility
-            'line-opacity': 1.0        // Full opacity for testing
+            'line-color': '#00eaff',
+            'line-width': 2,
+            'line-opacity': 0.6,
+            'line-dasharray': [4, 2]
           }
         }, firstSymbolId); // Insert before first symbol layer (labels, markers will be on top)
       }
