@@ -33,6 +33,20 @@ html, body {
   animation: pulse-glow 2s ease-in-out infinite;
 }
 
+#radar-sweep {
+  animation: radar-spin 4s linear infinite;
+  transform-origin: 27px 27px;
+}
+
+@keyframes radar-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .vessel-svg-icon {
   background: none !important;
   border: none !important;
