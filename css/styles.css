@@ -689,6 +689,11 @@ html, body {
   border-bottom: 1px solid rgba(0, 234, 255, 0.2);
   padding-bottom: 6px;
   margin-bottom: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #00eaff;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
 .buoy-popup .popup-section {

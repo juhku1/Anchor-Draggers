@@ -120,20 +120,9 @@ function parseBuoyXMLSimple(xmlText) {
 function formatBuoyPopup(buoy) {
     const obs = buoy.observations;
     
-    const buoyIcon = `<svg width="40" height="28" viewBox="0 0 32 22" xmlns="http://www.w3.org/2000/svg">
-      <line x1="16" y1="8" x2="16" y2="1" stroke="#33" stroke-width="2" stroke-linecap="round"/>
-      <circle cx="16" cy="0.5" r="1.5" fill="#ff6b00"/>
-      <ellipse cx="16" cy="16" rx="12" ry="6" fill="#ffcc00" stroke="#cc9900" stroke-width="1.5"/>
-      <ellipse cx="16" cy="15" rx="12" ry="5" fill="#ffe666"/>
-      <ellipse cx="16" cy="14" rx="8" ry="3" fill="#fff" opacity="0.3"/>
-    </svg>`;
-    
     let html = `<div class="buoy-popup">
         <div class="popup-header">
-            <div style="display: flex; align-items: center; gap: 8px;">
-                ${buoyIcon}
-                <strong>${buoy.name}</strong>
-            </div>
+            <strong>${buoy.name}</strong>
         </div>
         <div class="popup-section">
             <div class="popup-row">
@@ -203,7 +192,7 @@ function updateBuoyMarkers(data, map) {
         </svg>
       `;
       
-      const popup = new maplibregl.Popup({ offset: 20, maxWidth: '280px' }).setHTML(popupHtml);
+      const popup = new maplibregl.Popup({ offset: 20, maxWidth: '280px', closeButton: false }).setHTML(popupHtml);
       const marker = new maplibregl.Marker({ element: el })
         .setLngLat([buoy.lon, buoy.lat])
         .setPopup(popup)
@@ -214,19 +203,6 @@ function updateBuoyMarkers(data, map) {
       // Update existing marker
       markerData.marker.setLngLat([buoy.lon, buoy.lat]);
       markerData.popup.setHTML(popupHtml);
-    }
-    
-    // Apply wave animation if wave data is available
-    const obs = buoy.observations;
-    if (markerData && obs.WaveHs !== null && obs.WTP !== null) {
-      const amplitude = Math.min(obs.WaveHs * 3, 10); // Wave height in meters -> pixels (max 10px)
-      const duration = Math.max(obs.WTP, 2); // Wave period in seconds (min 2s)
-      markerData.element.style.animation = `wave-bob ${duration}s ease-in-out infinite`;
-      markerData.element.style.setProperty('--wave-amplitude', `${amplitude}px`);
-    } else if (markerData) {
-      // No wave data - gentle default animation
-      markerData.element.style.animation = 'wave-bob 3s ease-in-out infinite';
-      markerData.element.style.setProperty('--wave-amplitude', '3px');
     }
   });
   
