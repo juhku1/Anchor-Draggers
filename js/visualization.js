@@ -100,8 +100,7 @@ const filterState = {
   types: new Set()
 };
 
-let showAllFlags = false;
-let showAllTypes = false;
+let activeTab = 'flags';
 
 function vesselPassesFilter(markerData) {
   const cSet = filterState.countries;
@@ -123,22 +122,15 @@ function applyFilters() {
 }
 
 function wireStatsFilterHandlers() {
-  const flagToggle = document.getElementById("toggle-flags");
-  if (flagToggle) {
-    flagToggle.onclick = () => {
-      showAllFlags = !showAllFlags;
+  // Tab switching
+  document.querySelectorAll(".stats-tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      activeTab = tab.getAttribute("data-tab");
       updateStatsPanel();
-      applyFilters();
-    };
-  }
-  const typeToggle = document.getElementById("toggle-types");
-  if (typeToggle) {
-    typeToggle.onclick = () => {
-      showAllTypes = !showAllTypes;
-      updateStatsPanel();
-      applyFilters();
-    };
-  }
+    });
+  });
+
+  // Filter checkboxes
   document.querySelectorAll(".flag-filter").forEach(cb => {
     cb.addEventListener("change", e => {
       const key = e.target.getAttribute("data-key");
@@ -170,59 +162,68 @@ function updateStatsPanel() {
     el.innerHTML = "No vessels on the map in the last fetch.";
     return;
   }
+
   const allCountryEntries = Object.entries(stats.byCountry)
     .sort((a, b) => b[1] - a[1]);
   const allTypeEntries = Object.entries(stats.byType)
     .sort((a, b) => b[1] - a[1]);
   const destinationEntries = Object.entries(stats.byDestination)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 10);
-
-  const countryEntries = showAllFlags ? allCountryEntries : allCountryEntries.slice(0, 5);
-  const typeEntries = showAllTypes ? allTypeEntries : allTypeEntries.slice(0, 5);
+    .slice(0, 20);
 
   let html = "";
-  html += `<div class="stats-row"><strong>Vessels on map:</strong> ${stats.total}</div>`;
+  html += `<div class="stats-summary"><strong>Vessels:</strong> ${stats.total}</div>`;
+  
+  // Tab navigation
+  html += `<div class="stats-tabs">
+    <button class="stats-tab ${activeTab === 'flags' ? 'active' : ''}" data-tab="flags">FLAGS</button>
+    <button class="stats-tab ${activeTab === 'types' ? 'active' : ''}" data-tab="types">TYPES</button>
+    <button class="stats-tab ${activeTab === 'destinations' ? 'active' : ''}" data-tab="destinations">DEST</button>
+  </div>`;
 
-  html += `<div class="stats-row">
-             <strong>By flag:</strong>
-             <button id="toggle-flags" class="stats-toggle" type="button">
-               ${showAllFlags ? "Top 5" : "All"}
-             </button>
-           </div>`;
-  html += `<div class="stats-small" id="stats-flags-list">`;
-  countryEntries.forEach(([c, n]) => {
-    const checked = filterState.countries.has(c) ? "checked" : "";
-    html += `<label class="stats-filter-label">
-               <input type="checkbox" class="flag-filter" data-key="${c}" ${checked}>
-               ${c} (${n})
-             </label>`;
-  });
-  html += `</div>`;
+  // Tab content
+  html += `<div class="stats-tab-content">`;
 
-  html += `<div class="stats-row" style="margin-top:4px;">
-             <strong>By ship type:</strong>
-             <button id="toggle-types" class="stats-toggle" type="button">
-               ${showAllTypes ? "Top 5" : "All"}
-             </button>
-           </div>`;
-  html += `<div class="stats-small" id="stats-types-list">`;
-  typeEntries.forEach(([t, n]) => {
-    const checked = filterState.types.has(t) ? "checked" : "";
-    html += `<label class="stats-filter-label">
-               <input type="checkbox" class="type-filter" data-key="${t}" ${checked}>
-               ${t} (${n})
-             </label>`;
-  });
-  html += `</div>`;
-
-  if (destinationEntries.length) {
-    const destText = destinationEntries
-      .map(([d, n]) => `${d} (${n})`)
-      .join("<br>");
-    html += `<div class="stats-row" style="margin-top:4px;"><strong>Top destinations:</strong></div>`;
-    html += `<div class="stats-small">${destText}</div>`;
+  // FLAGS tab
+  if (activeTab === 'flags') {
+    html += `<div class="stats-scrollable">`;
+    allCountryEntries.forEach(([c, n]) => {
+      const checked = filterState.countries.has(c) ? "checked" : "";
+      html += `<label class="stats-filter-label">
+                 <input type="checkbox" class="flag-filter" data-key="${c}" ${checked}>
+                 ${c} (${n})
+               </label>`;
+    });
+    html += `</div>`;
   }
+
+  // TYPES tab
+  if (activeTab === 'types') {
+    html += `<div class="stats-scrollable">`;
+    allTypeEntries.forEach(([t, n]) => {
+      const checked = filterState.types.has(t) ? "checked" : "";
+      html += `<label class="stats-filter-label">
+                 <input type="checkbox" class="type-filter" data-key="${t}" ${checked}>
+                 ${t} (${n})
+               </label>`;
+    });
+    html += `</div>`;
+  }
+
+  // DESTINATIONS tab
+  if (activeTab === 'destinations') {
+    html += `<div class="stats-scrollable">`;
+    if (destinationEntries.length) {
+      destinationEntries.forEach(([d, n]) => {
+        html += `<div class="stats-dest-item">${d} <span class="stats-count">(${n})</span></div>`;
+      });
+    } else {
+      html += `<div class="stats-empty">No destination data available</div>`;
+    }
+    html += `</div>`;
+  }
+
+  html += `</div>`;
   el.innerHTML = html;
   wireStatsFilterHandlers();
 }
