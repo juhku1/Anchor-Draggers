@@ -1,6 +1,6 @@
 /**
- * Data loading and API functions (ES6 Module)
- * Handles CSV loading, API calls, and data management
+ * Data loading and utility functions
+ * Handles CSV loading, API calls, and data formatting
  */
 
 // Configuration
@@ -57,34 +57,34 @@ function splitCsvLine(line) {
 // MMSI Country Data
 // ============================================================================
 
-export async function loadMmsiCountry() {
-  try {
-    const res = await fetch("mmsi_countries.csv");
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    const csv = await res.text();
-    mmsiCountry = {};
-    csv.split(/\r?\n/).forEach(line => {
-      line = line.trim();
-      if (!line || line.startsWith("Digit")) return;
-      const parts = line.split(";");
-      if (parts.length < 2) return;
-      const digit = parts[0].trim();
-      const country = parts[1].trim();
-      if (digit && country) mmsiCountry[digit] = country;
+export function loadMmsiCountry(callback) {
+  fetch("mmsi_countries.csv")
+    .then(res => {
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res.text();
+    })
+    .then(csv => {
+      mmsiCountry = {};
+      csv.split(/\r?\n/).forEach(line => {
+        line = line.trim();
+        if (!line || line.startsWith("Digit")) return;
+        const parts = line.split(";");
+        if (parts.length < 2) return;
+        const digit = parts[0].trim();
+        const country = parts[1].trim();
+        if (digit && country) mmsiCountry[digit] = country;
+      });
+      if (callback) callback();
+    })
+    .catch(err => {
+      if (callback) callback();
     });
-  } catch (err) {
-    console.error("Failed to load MMSI country data:", err);
-  }
 }
 
-function getMmsiCountry(mmsi) {
+export function getMmsiCountry(mmsi) {
   if (!mmsi) return "";
   const prefix = String(mmsi).substring(0, 3);
   return mmsiCountry[prefix] || "";
-}
-
-export function getCountryName(mmsi) {
-  return getMmsiCountry(mmsi) || "–";
 }
 
 export function getIso2Code(mmsi) {
@@ -102,40 +102,57 @@ export function getIso2Code(mmsi) {
 // UN/LOCODE Data
 // ============================================================================
 
-export async function loadUnlocode() {
-  try {
-    const res = await fetch(UNLOCODE_URL);
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    const csv = await res.text();
-    unlocodeMap = {};
-    const lines = csv.split(/\r?\n/);
-    if (!lines.length) return;
-    const header = splitCsvLine(lines[0]);
-    const idxCountry = header.indexOf("Country");
-    const idxLocation = header.indexOf("Location");
-    const idxName = header.indexOf("Name");
-    if (idxCountry === -1 || idxLocation === -1 || idxName === -1) return;
-    for (let i = 1; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (!line) continue;
-      const cols = splitCsvLine(line);
-      const country = cols[idxCountry];
-      const loc = cols[idxLocation];
-      const name = cols[idxName];
-      if (!country || !loc || !name) continue;
-      const code = (country + loc).replace(/\s+/g, "").toUpperCase();
-      unlocodeMap[code] = { name: name, country: country };
-    }
-  } catch (err) {
-    console.error("Failed to load UN/LOCODE data:", err);
-  }
+function loadUnlocode(callback) {
+  fetch(UNLOCODE_URL)
+    .then(res => {
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res.text();
+    })
+    .then(csv => {
+      unlocodeMap = {};
+      const lines = csv.split(/\r?\n/);
+      if (!lines.length) return;
+      const header = splitCsvLine(lines[0]);
+      const idxCountry = header.indexOf("Country");
+      const idxLocation = header.indexOf("Location");
+      const idxName = header.indexOf("Name");
+      if (idxCountry === -1 || idxLocation === -1 || idxName === -1) return;
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        const cols = splitCsvLine(line);
+        const country = cols[idxCountry];
+        const loc = cols[idxLocation];
+        const name = cols[idxName];
+        if (!country || !loc || !name) continue;
+        const code = (country + loc).replace(/\s+/g, "").toUpperCase();
+        unlocodeMap[code] = { name: name, country: country };
+      }
+      if (callback) callback();
+    })
+    .catch(err => {
+      if (callback) callback();
+    });
+}
+
+function normalizeDestinationCode(raw) {
+  if (!raw) return null;
+  return String(raw).replace(/\s+/g, "").toUpperCase();
+}
+
+function decodeDestination(raw) {
+  const norm = normalizeDestinationCode(raw);
+  if (!norm) return null;
+  const entry = unlocodeMap[norm];
+  if (!entry) return null;
+  return `${entry.name}, ${entry.country}`;
 }
 
 // ============================================================================
 // Digitraffic API
 // ============================================================================
 
-export async function fetchVesselMetadata() {
+async function fetchVesselMetadata() {
   if (metadataLoaded) return;
   const url = "https://meri.digitraffic.fi/api/ais/v1/vessels";
   const res = await fetch(url, {
@@ -153,7 +170,7 @@ export async function fetchVesselMetadata() {
   metadataLoaded = true;
 }
 
-export async function fetchAisLocations() {
+async function fetchAisLocations() {
   const thirtyMinutesMs = 30 * 60 * 1000;
   const from = Date.now() - thirtyMinutesMs;
   const url = "https://meri.digitraffic.fi/api/ais/v1/locations?from=" + from;
@@ -165,4 +182,45 @@ export async function fetchAisLocations() {
   });
   if (!res.ok) throw new Error("HTTP " + res.status + " " + res.statusText);
   return await res.json();
+}
+
+// ============================================================================
+// Utility Functions
+// ============================================================================
+
+function haversine(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const toRad = d => d * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+function formatKnots(value) {
+  if (typeof value !== "number" || !isFinite(value)) return "–";
+  return value.toFixed(1) + " kn";
+}
+
+function formatMeters(value) {
+  if (typeof value !== "number" || !isFinite(value)) return "–";
+  return value.toFixed(1) + " m";
+}
+
+function formatTimestampMs(tsMs) {
+  if (typeof tsMs !== "number" || !isFinite(tsMs)) return "–";
+  return new Date(tsMs).toLocaleString();
+}
+
+function formatLatLon(lat, lon) {
+  if (typeof lat !== "number" || typeof lon !== "number") return "–";
+  return lat.toFixed(5) + ", " + lon.toFixed(5);
+}
+
+function safe(value, fallback = "–") {
+  return (value === null || value === undefined || value === "") ? fallback : value;
 }

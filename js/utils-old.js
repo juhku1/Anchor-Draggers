@@ -1,9 +1,9 @@
 /**
- * Utility functions for AIS data formatting and interpretation (ES6 Module)
+ * Utility functions for AIS data formatting and interpretation
  */
 
 // Navigation status decoder
-export function getNavStatText(navStat) {
+function getNavStatText(navStat) {
   const statuses = {
     0: "Under way",
     1: "At anchor",
@@ -20,7 +20,7 @@ export function getNavStatText(navStat) {
 }
 
 // Navigation status color
-export function getNavStatColor(navStat) {
+function getNavStatColor(navStat) {
   if (navStat === 0) return "#2ecc71"; // Under way = green
   if (navStat === 1) return "#3498db"; // At anchor = blue
   if (navStat === 5) return "#9b59b6"; // Moored = purple
@@ -29,12 +29,31 @@ export function getNavStatColor(navStat) {
   return "#95a5a6"; // Other = gray
 }
 
+// ETA formatter (MMDDHHMM format to readable)
+function formatETA(eta) {
+  if (!eta || eta === 0) return null;
+  
+  const month = (eta >> 16) & 0x0F;
+  const day = (eta >> 11) & 0x1F;
+  const hour = (eta >> 6) & 0x1F;
+  const minute = eta & 0x3F;
+  
+  if (month === 0 || day === 0) return null;
+  if (hour === 24 || minute === 60) return null;
+  
+  const monthNames = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const monthName = monthNames[month] || month;
+  
+  return `${monthName} ${day}, ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+}
+
 // Rate of turn formatter
-export function formatROT(rot) {
+function formatROT(rot) {
   if (rot === undefined || rot === null || rot === -128) return null;
   if (rot === 127) return "Right >720°/min";
   if (rot === -127) return "Left >720°/min";
   
+  // ROT[IND] = (ROT[AIS] / 4.733)^2
   const rotInd = Math.sign(rot) * Math.pow(Math.abs(rot) / 4.733, 2);
   const direction = rotInd > 0 ? "Right" : "Left";
   
@@ -42,7 +61,7 @@ export function formatROT(rot) {
 }
 
 // Position type decoder
-export function getPosTypeText(posType) {
+function getPosTypeText(posType) {
   const types = {
     0: "Undefined",
     1: "GPS",
@@ -56,29 +75,4 @@ export function getPosTypeText(posType) {
     15: "Internal GNSS"
   };
   return types[posType] || `Type ${posType}`;
-}
-
-// Formatting functions
-export function formatKnots(value) {
-  if (typeof value !== "number" || !isFinite(value)) return "–";
-  return value.toFixed(1) + " kn";
-}
-
-export function formatMeters(value) {
-  if (typeof value !== "number" || !isFinite(value)) return "–";
-  return value.toFixed(1) + " m";
-}
-
-export function formatTimestampMs(tsMs) {
-  if (typeof tsMs !== "number" || !isFinite(tsMs)) return "–";
-  return new Date(tsMs).toLocaleString();
-}
-
-export function formatLatLon(lat, lon) {
-  if (typeof lat !== "number" || typeof lon !== "number") return "–";
-  return lat.toFixed(5) + ", " + lon.toFixed(5);
-}
-
-export function safe(value, fallback = "–") {
-  return (value === null || value === undefined || value === "") ? fallback : value;
 }
