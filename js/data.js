@@ -10,7 +10,7 @@ const UNLOCODE_URL = "https://raw.githubusercontent.com/datasets/un-locode/maste
 // Data storage
 let mmsiCountry = {};
 export let unlocodeMap = {};
-let vesselMetadataByMmsi = {};
+export let vesselMetadataByMmsi = {};
 let metadataLoaded = false;
 
 // Country mapping (MMSI country names to ISO2 codes)

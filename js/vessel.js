@@ -3,7 +3,7 @@
  * Handles AIS vessel markers, popups, statistics, and filtering
  */
 
-import { loadMmsiCountry, loadUnlocode, fetchVesselMetadata, fetchAisLocations, getCountryName, getIso2Code, unlocodeMap } from './data.js';
+import { loadMmsiCountry, loadUnlocode, fetchVesselMetadata, fetchAisLocations, getCountryName, getIso2Code, unlocodeMap, vesselMetadataByMmsi } from './data.js';
 import { getNavStatText, getNavStatColor, formatKnots, formatMeters, formatTimestampMs, formatLatLon, getPosTypeText, formatROT } from './utils.js';
 
 // ============================================================================
@@ -337,14 +337,16 @@ async function loadAis(map) {
     let anyPosition = null;
 
     data.features.forEach((feat) => {
-      const props = feat.geometry;
-      const meta = feat.properties;
+      const props = feat.properties || {};  // AIS position data (mmsi, sog, cog, heading, etc.)
       const mmsi = props.mmsi;
-      const lat = props.latitude;
-      const lon = props.longitude;
+      if (!mmsi) return;
+      
+      const lat = feat.geometry.coordinates[1];
+      const lon = feat.geometry.coordinates[0];
 
       if (!anyPosition) anyPosition = [lon, lat];
 
+      const meta = vesselMetadataByMmsi[mmsi] || {};  // Vessel metadata (name, shipType, destination, etc.)
       const shipType = meta.shipType;
       const sog = props.sog;
       const visualAngle = (props.heading !== undefined && props.heading !== 511)
