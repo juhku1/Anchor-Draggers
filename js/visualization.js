@@ -1,3 +1,4 @@
+console.log("[DEBUG] visualization.js loaded v1.33");
 /**
  * Visualization and UI
  * Handles vessel rendering, statistics, and filtering
