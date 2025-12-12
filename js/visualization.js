@@ -133,6 +133,8 @@ export function applyFilters() {
                            filterState.destinations.size > 0;
   if (clearBtn) {
     clearBtn.style.display = hasActiveFilters ? "block" : "none";
+    console.log("Clear filter button:", hasActiveFilters ? "visible" : "hidden", 
+                "Filters:", filterState.countries.size, filterState.types.size, filterState.destinations.size);
   }
 }
 
@@ -294,7 +296,9 @@ export function initUIHandlers() {
   // Clear filter button handler
   const clearFilterBtn = document.getElementById("clear-filter");
   if (clearFilterBtn) {
-    clearFilterBtn.addEventListener("click", function() {
+    clearFilterBtn.addEventListener("click", function(e) {
+      e.stopPropagation(); // Prevent header click from toggling panel
+      
       // Clear all filters
       filterState.countries.clear();
       filterState.types.clear();

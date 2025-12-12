@@ -79,14 +79,10 @@
   <div class="sky-overlay"></div>
   <div class="ground-vignette"></div>
   
-  <!-- Clear Filter Button -->
-  <button id="clear-filter" class="clear-filter" style="display: none;">
-    Clear Filter
-  </button>
-  
   <div id="stats-panel" class="stats-panel stats-panel-collapsed">
     <div id="stats-header" class="stats-header" tabindex="0">
-      Status | Flag | Route
+      <span class="stats-header-title">Status | Flag | Route</span>
+      <button id="clear-filter" class="clear-filter-btn" style="display: none;" title="Clear all filters">✕</button>
       <span id="stats-panel-arrow">&#x25B2;</span>
     </div>
     <div id="stats-content" class="stats-body">
