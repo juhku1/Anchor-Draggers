@@ -133,11 +133,16 @@ function applyFilters() {
                            filterState.types.size > 0 || 
                            filterState.destinations.size > 0;
   if (clearBtn) {
-    clearBtn.style.display = hasActiveFilters ? "inline-flex" : "none";
-    console.log("[DEBUG] Clear filter button:", hasActiveFilters ? "visible" : "hidden", 
-                "Filters:", filterState.countries.size, filterState.types.size, filterState.destinations.size);
-  } else {
-    console.log("[DEBUG] Clear filter button not found in DOM!");
+    clearBtn.classList.toggle("active", hasActiveFilters);
+    if (hasActiveFilters) {
+      clearBtn.innerHTML = "✕";
+      clearBtn.title = "Clear all filters";
+      clearBtn.style.display = "inline-flex";
+    } else {
+      clearBtn.innerHTML = "";
+      clearBtn.title = "No filters active";
+      clearBtn.style.display = "none";
+    }
   }
 }
 
@@ -199,6 +204,10 @@ function wireStatsFilterHandlers() {
 // ============================================================================
 
 function updateStatsPanel() {
+  // Vaihda headerin teksti
+  const headerTitle = document.querySelector('.stats-header-title');
+  if (headerTitle) headerTitle.textContent = 'FILTER VESSELS';
+
   const el = document.getElementById("stats-content");
   if (!el) return;
   if (stats.total === 0) {
