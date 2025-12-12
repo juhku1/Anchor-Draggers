@@ -89,12 +89,13 @@ def _load_geojson():
             if not geom:
                 continue
             poly = shape(geom)
+            geom_type = geom.get('type')
             try:
                 prepared = prep(poly)
             except Exception:
                 prepared = poly
-            # store iso2 (may be None) together with geometry
-            polys.append((iso2, poly, prepared))
+            # store iso2 (may be None) together with geometry and geometry type
+            polys.append((iso2, poly, prepared, geom_type))
 
         _territorial_polys = polys
         print(f"territory.py: loaded {len(polys)} features from {path}")
@@ -117,15 +118,27 @@ def find_territorial_country(lon, lat):
             return None
 
     pt = Point(lon, lat)
-    for iso2, poly, prepared in _territorial_polys:
+    PROXIMITY_THRESHOLD = 0.2  # ~12 nautical miles in degrees (approx)
+    for iso2, poly, prepared, geom_type in _territorial_polys:
         try:
-            contains = False
-            if hasattr(prepared, 'contains'):
-                contains = prepared.contains(pt)
-            else:
-                contains = poly.contains(pt)
-            if contains:
-                return iso2
+            # For polygonal geometries check containment
+            if geom_type in ['Polygon', 'MultiPolygon']:
+                contains = False
+                if hasattr(prepared, 'contains'):
+                    contains = prepared.contains(pt)
+                else:
+                    contains = poly.contains(pt)
+                if contains:
+                    return iso2
+                # If not contained, fall through to proximity check below
+
+            # For linear boundaries (LineString/MultiLineString) or near-miss polygon points,
+            # use proximity threshold as a fallback
+            try:
+                if poly.distance(pt) < PROXIMITY_THRESHOLD:
+                    return iso2
+            except Exception:
+                pass
         except Exception:
             # fallback to intersects
             try:
