@@ -140,7 +140,6 @@ function applyFilters() {
     console.log("[DEBUG] Clear filter button not found in DOM!");
   }
 }
-}
 
 function wireStatsFilterHandlers() {
   // Tab switching
