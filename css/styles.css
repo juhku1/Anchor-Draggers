@@ -75,14 +75,17 @@ html, body {
 #radar-sweep {
   animation: radar-spin 4s linear infinite;
   transform-origin: 90px 90px;
+  will-change: transform; /* Optimize for mobile - prevents repaints */
+  backface-visibility: hidden; /* Reduces jitter on mobile */
+  -webkit-backface-visibility: hidden; /* Safari/iOS support */
 }
 
 @keyframes radar-spin {
   from {
-    transform: rotate(0deg);
+    transform: rotate(0deg) translateZ(0); /* Force GPU acceleration */
   }
   to {
-    transform: rotate(360deg);
+    transform: rotate(360deg) translateZ(0);
   }
 }
 

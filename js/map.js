@@ -24,10 +24,15 @@ const map = new maplibregl.Map({
 // Add navigation controls
 map.addControl(new maplibregl.NavigationControl(), 'top-right');
 
-// Disable rotation
+// Disable ALL rotation methods (prevents jittery movement on mobile)
 map.dragRotate.disable();
-if (map.touchZoomRotate && map.touchZoomRotate.disableRotation) {
-  map.touchZoomRotate.disableRotation();
+map.touchZoomRotate.disableRotation();
+map.keyboard.disableRotation();
+
+// Prevent device orientation from affecting map bearing
+if (window.DeviceOrientationEvent) {
+  // Block default orientation behavior
+  map.scrollZoom.setWheelZoomRate(1/450); // Smoother zoom on mobile
 }
 
 // ============================================================================
