@@ -10,6 +10,11 @@ except Exception:
     Point = None
     prep = None
 
+try:
+    import pycountry
+except Exception:
+    pycountry = None
+
 
 GEOJSON_FILE_CANDIDATES = [
     'territorial_waters_baltic_formatted.geojson',
@@ -44,8 +49,42 @@ def _load_geojson():
         polys = []
         for feat in gj.get('features', []):
             props = feat.get('properties', {}) or {}
-            # Prefer territory name fields
-            country = props.get('territory1') or props.get('sovereign1') or props.get('geoname') or props.get('name') or None
+            # Try to find an ISO3 code in properties (common in datasets)
+            iso3 = (props.get('iso_ter1') or props.get('iso_sov1') or props.get('iso_sov') or '')
+            iso2 = None
+            if iso3:
+                iso3 = iso3.strip().upper()
+                # convert ISO3 -> ISO2 via pycountry if available
+                try:
+                    if pycountry:
+                        c = pycountry.countries.get(alpha_3=iso3)
+                        if c:
+                            iso2 = c.alpha_2
+                except Exception:
+                    iso2 = None
+
+            # Fallback: try to resolve by name
+            if not iso2:
+                name = (props.get('territory1') or props.get('sovereign1') or props.get('geoname') or props.get('name') or '')
+                if name:
+                    name = name.strip()
+                    try:
+                        if pycountry:
+                            c = pycountry.countries.get(name=name)
+                            if c:
+                                iso2 = c.alpha_2
+                    except Exception:
+                        iso2 = None
+
+            # Final fallback mapping for Baltic region
+            if not iso2 and name:
+                fallback = {
+                    'FINLAND': 'FI', 'ESTONIA': 'EE', 'LATVIA': 'LV', 'LITHUANIA': 'LT',
+                    'SWEDEN': 'SE', 'DENMARK': 'DK', 'RUSSIA': 'RU', 'POLAND': 'PL',
+                    'GERMANY': 'DE'
+                }
+                iso2 = fallback.get(name.upper())
+
             geom = feat.get('geometry')
             if not geom:
                 continue
@@ -54,7 +93,8 @@ def _load_geojson():
                 prepared = prep(poly)
             except Exception:
                 prepared = poly
-            polys.append((country, poly, prepared))
+            # store iso2 (may be None) together with geometry
+            polys.append((iso2, poly, prepared))
 
         _territorial_polys = polys
         print(f"territory.py: loaded {len(polys)} features from {path}")
@@ -63,7 +103,7 @@ def _load_geojson():
 
 
 def find_territorial_country(lon, lat):
-    """Return the territory name (string) if point is inside any polygon, else None.
+    """Return the ISO-3166-1 alpha-2 country code (e.g. 'FI') if point is inside any polygon, else None.
 
     Uses prepared geometries for speed when available. If Shapely is not installed,
     returns None.
@@ -77,7 +117,7 @@ def find_territorial_country(lon, lat):
             return None
 
     pt = Point(lon, lat)
-    for country, poly, prepared in _territorial_polys:
+    for iso2, poly, prepared in _territorial_polys:
         try:
             contains = False
             if hasattr(prepared, 'contains'):
@@ -85,12 +125,12 @@ def find_territorial_country(lon, lat):
             else:
                 contains = poly.contains(pt)
             if contains:
-                return country
+                return iso2
         except Exception:
             # fallback to intersects
             try:
                 if poly.intersects(pt):
-                    return country
+                    return iso2
             except Exception:
                 continue
 

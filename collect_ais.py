@@ -10,6 +10,11 @@ from datetime import datetime, timezone
 import os
 from pathlib import Path
 from territory import find_territorial_country
+# Optional parser for flexible ETA formats
+try:
+    from dateutil import parser as dateutil_parser
+except Exception:
+    dateutil_parser = None
 
 # Baltic Sea bounding box (same as map bounds)
 BBOX = {
@@ -77,6 +82,32 @@ def fetch_vessel_metadata(mmsi_list):
         print(f"Warning: Could not fetch vessel metadata: {e}")
         return {}
 
+
+def _normalize_eta(eta_raw):
+    """Normalize ETA to UTC ISO8601 string (timestamptz-friendly). Returns None if input falsy."""
+    if not eta_raw:
+        return None
+    try:
+        if dateutil_parser:
+            dt = dateutil_parser.parse(eta_raw)
+            if not dt.tzinfo:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return dt.astimezone(timezone.utc).isoformat()
+        else:
+            s = eta_raw
+            if isinstance(s, str) and s.endswith('Z'):
+                s = s[:-1] + '+00:00'
+            dt = datetime.fromisoformat(s)
+            if not dt.tzinfo:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return dt.astimezone(timezone.utc).isoformat()
+    except Exception:
+        # fallback: return string representation
+        try:
+            return str(eta_raw)
+        except Exception:
+            return None
+
 def filter_vessels(data):
     """Filter moving vessels within Baltic Sea region"""
     if not data or 'features' not in data:
@@ -116,12 +147,14 @@ def save_to_database(vessels, vessel_metadata, timestamp, collection_time_ms):
             
             # Get metadata if available
             meta = vessel_metadata.get(mmsi, {})
+            # Normalize ETA to timestamptz-friendly ISO string
+            eta_norm = _normalize_eta(meta.get('eta'))
             # Determine territorial country (if any)
             try:
-                territorial_country = find_territorial_country(coords[0], coords[1])
+                territorial_country_code = find_territorial_country(coords[0], coords[1])
             except Exception:
-                territorial_country = None
-            
+                territorial_country_code = None
+
             vessel_data.append({
                 'timestamp': timestamp_str,
                 'mmsi': mmsi,
@@ -134,10 +167,10 @@ def save_to_database(vessels, vessel_metadata, timestamp, collection_time_ms):
                 'nav_stat': props.get('navStat'),
                 'ship_type': meta.get('ship_type'),
                 'destination': meta.get('destination'),
-                'eta': meta.get('eta'),
+                'eta': eta_norm,
                 'draught': meta.get('draught'),
                 'pos_acc': props.get('posAcc'),
-                'territorial_country': territorial_country
+                'territorial_water_country_code': territorial_country_code
             })
         
         # Batch insert vessels (Supabase has 1000 row limit per request)
@@ -173,9 +206,11 @@ def export_latest_json(vessels, vessel_metadata, timestamp):
         mmsi = props.get('mmsi')
         meta = vessel_metadata.get(mmsi, {})
         try:
-            territorial_country = find_territorial_country(coords[0], coords[1])
+            territorial_country_code = find_territorial_country(coords[0], coords[1])
         except Exception:
-            territorial_country = None
+            territorial_country_code = None
+
+        eta_norm = _normalize_eta(meta.get('eta'))
 
         vessel_list.append({
             'mmsi': mmsi,
@@ -187,7 +222,8 @@ def export_latest_json(vessels, vessel_metadata, timestamp):
             'heading': props.get('heading'),
             'ship_type': meta.get('ship_type'),
             'destination': meta.get('destination'),
-            'territorial_country': territorial_country
+            'eta': eta_norm,
+            'territorial_water_country_code': territorial_country_code
         })
     
     output = {
