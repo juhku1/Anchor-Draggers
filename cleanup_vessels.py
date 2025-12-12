@@ -1,5 +1,64 @@
 #!/usr/bin/env python3
 """
+Truncate only the `vessel_positions` table (safe helper).
+
+Usage:
+  export DATABASE_URL='postgres://user:pass@host:5432/db'
+  python cleanup_vessels.py
+
+You will be prompted to type YES to proceed. To skip prompt (use with care),
+set environment variable `FORCE=YES`.
+"""
+import os
+import sys
+import psycopg2
+
+
+def confirm():
+    if os.environ.get('FORCE') == 'YES':
+        return True
+    print('This will TRUNCATE public.vessel_positions and RESTART IDENTITY.')
+    print('Type YES to continue: ', end='', flush=True)
+    try:
+        if input().strip() == 'YES':
+            return True
+    except Exception:
+        pass
+    return False
+
+
+def main():
+    db = os.environ.get('DATABASE_URL') or os.environ.get('SUPABASE_DB_URL')
+    if not db:
+        print('ERROR: set DATABASE_URL environment variable (Postgres DSN)')
+        sys.exit(1)
+
+    if not confirm():
+        print('Aborted.')
+        sys.exit(0)
+
+    conn = psycopg2.connect(db)
+    try:
+        cur = conn.cursor()
+        cur.execute('SELECT count(*) FROM public.vessel_positions;')
+        before = cur.fetchone()[0]
+        print('Rows before:', before)
+
+        cur.execute('TRUNCATE TABLE public.vessel_positions RESTART IDENTITY CASCADE;')
+        conn.commit()
+
+        cur.execute('SELECT count(*) FROM public.vessel_positions;')
+        after = cur.fetchone()[0]
+        print('Rows after:', after)
+        cur.close()
+    finally:
+        conn.close()
+
+
+if __name__ == '__main__':
+    main()
+#!/usr/bin/env python3
+"""
 Cleanup script for AIS data
 Removes vessels that haven't crossed international territorial waters in the last 24 hours
 """

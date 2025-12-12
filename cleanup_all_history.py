@@ -1,5 +1,68 @@
 #!/usr/bin/env python3
 """
+Truncate `vessel_positions` and `collection_summary` and restart identities.
+
+Usage:
+  export DATABASE_URL='postgres://user:pass@host:5432/db'
+  python cleanup_all_history.py
+
+Requires typing YES to confirm or set FORCE=YES.
+"""
+import os
+import sys
+import psycopg2
+
+
+def confirm():
+    if os.environ.get('FORCE') == 'YES':
+        return True
+    print('This will TRUNCATE vessel_positions and collection_summary and RESTART IDENTITY.')
+    print('Type YES to continue: ', end='', flush=True)
+    try:
+        if input().strip() == 'YES':
+            return True
+    except Exception:
+        pass
+    return False
+
+
+def main():
+    db = os.environ.get('DATABASE_URL') or os.environ.get('SUPABASE_DB_URL')
+    if not db:
+        print('ERROR: set DATABASE_URL environment variable (Postgres DSN)')
+        sys.exit(1)
+
+    if not confirm():
+        print('Aborted.')
+        sys.exit(0)
+
+    conn = psycopg2.connect(db)
+    try:
+        cur = conn.cursor()
+        cur.execute('SELECT count(*) FROM public.vessel_positions;')
+        before_v = cur.fetchone()[0]
+        cur.execute('SELECT count(*) FROM public.collection_summary;')
+        before_s = cur.fetchone()[0]
+        print(f'Rows before: vessel_positions={before_v}, collection_summary={before_s}')
+
+        cur.execute('TRUNCATE TABLE public.vessel_positions RESTART IDENTITY CASCADE;')
+        cur.execute('TRUNCATE TABLE public.collection_summary RESTART IDENTITY CASCADE;')
+        conn.commit()
+
+        cur.execute('SELECT count(*) FROM public.vessel_positions;')
+        after_v = cur.fetchone()[0]
+        cur.execute('SELECT count(*) FROM public.collection_summary;')
+        after_s = cur.fetchone()[0]
+        print(f'Rows after: vessel_positions={after_v}, collection_summary={after_s}')
+        cur.close()
+    finally:
+        conn.close()
+
+
+if __name__ == '__main__':
+    main()
+#!/usr/bin/env python3
+"""
 One-time full cleanup: Analyze entire database history
 Keeps only vessels that have EVER crossed territorial boundaries
 """
