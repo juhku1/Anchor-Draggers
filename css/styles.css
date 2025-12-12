@@ -236,17 +236,18 @@ html, body {
   right: 0;
   bottom: 60px;
   z-index: 2001;
-  background: rgba(5, 8, 18, 0.96);
+  background: linear-gradient(135deg, rgba(5, 8, 18, 0.98) 80%, rgba(0, 234, 255, 0.10) 100%);
   color: #eee;
   padding: 8px 12px;
-  border-radius: 6px 0 0 6px;
+  border-radius: 16px 0 0 16px;
   font-size: 13px;
   width: 340px;
-  box-shadow: -2px 2px 10px rgba(0,0,0,0.4);
-  border: 1px solid rgba(0, 234, 255, 0.2);
+  box-shadow: -4px 4px 24px 4px rgba(0,234,255,0.10), -2px 2px 10px rgba(0,0,0,0.4);
+  border: 2px solid rgba(0, 234, 255, 0.25);
   border-right: none;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(.4,1.4,.6,1);
   transform: translateX(0);
+  backdrop-filter: blur(2.5px);
 }
 
 .stats-header {
