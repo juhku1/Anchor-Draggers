@@ -231,6 +231,38 @@ html, body {
   );
 }
 
+/* Clear Filter Button */
+.clear-filter {
+  position: fixed;
+  right: 12px;
+  bottom: 340px;
+  z-index: 2001;
+  background: rgba(5, 8, 18, 0.96);
+  color: #00eaff;
+  border: 1px solid rgba(0, 234, 255, 0.3);
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: -2px 2px 10px rgba(0,0,0,0.4);
+  text-shadow: 0 0 8px rgba(0, 234, 255, 0.6);
+}
+
+.clear-filter:hover {
+  background: rgba(0, 234, 255, 0.15);
+  border-color: #00eaff;
+  transform: translateY(-2px);
+  box-shadow: -2px 4px 16px rgba(0, 234, 255, 0.3);
+}
+
+.clear-filter:active {
+  transform: translateY(0);
+}
+
 .stats-panel {
   position: fixed;
   right: 0;
@@ -251,7 +283,7 @@ html, body {
 
 .stats-header {
   font-weight: 600;
-  font-size: 16px;
+  font-size: 15px;
   text-transform: uppercase;
   letter-spacing: 0.09em;
   color: #00eaff;
