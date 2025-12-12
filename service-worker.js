@@ -19,14 +19,16 @@ const urlsToCache = [
 	'./js/data-old.js',
 	'./js/map-old.js',
 	'./js/utils-old.js',
-	'./js/visualization.js',
 	'./manifest.json',
-	'./favicon.ico',
 	'./mmsi_countries.csv',
 	'./baltic_maritime_boundaries.geojson',
 	'./helcom_territorial.geojson',
 	'./territorial_labels.geojson',
 	'./data/ais/latest.json',
+	'./icon-192.png',
+	'./icon-192.svg',
+	'./icon-512.png',
+	'./icon-512.svg',
 ];
 
 self.addEventListener('install', function(event) {
