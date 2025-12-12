@@ -139,43 +139,72 @@ export function applyFilters() {
 }
 
 function wireStatsFilterHandlers() {
-  // Tab switching
-  document.querySelectorAll(".stats-tab").forEach(tab => {
-    tab.addEventListener("click", (e) => {
-      e.stopPropagation(); // Prevent header click handler from closing panel
+  // Tab switching - use event delegation on the container that exists
+  const tabsContainer = document.querySelector(".stats-tabs");
+  if (tabsContainer) {
+    // Remove old listener if exists
+    const oldListener = tabsContainer._tabClickListener;
+    if (oldListener) {
+      tabsContainer.removeEventListener("click", oldListener);
+    }
+    
+    // Create new listener
+    const newListener = (e) => {
+      const tab = e.target.closest(".stats-tab");
+      if (!tab) return;
+      e.stopPropagation();
       activeTab = tab.getAttribute("data-tab");
       updateStatsPanel();
-    });
-  });
+    };
+    
+    tabsContainer.addEventListener("click", newListener);
+    tabsContainer._tabClickListener = newListener;
+  }
 
-  // Filter checkboxes
-  document.querySelectorAll(".flag-filter").forEach(cb => {
-    cb.addEventListener("change", e => {
-      const key = e.target.getAttribute("data-key");
-      if (!key) return;
-      if (e.target.checked) filterState.countries.add(key);
-      else filterState.countries.delete(key);
-      applyFilters();
-    });
-  });
-  document.querySelectorAll(".type-filter").forEach(cb => {
-    cb.addEventListener("change", e => {
-      const key = e.target.getAttribute("data-key");
-      if (!key) return;
-      if (e.target.checked) filterState.types.add(key);
-      else filterState.types.delete(key);
-      applyFilters();
-    });
-  });
-  document.querySelectorAll(".dest-filter").forEach(cb => {
-    cb.addEventListener("change", e => {
-      const key = e.target.getAttribute("data-key");
-      if (!key) return;
-      if (e.target.checked) filterState.destinations.add(key);
-      else filterState.destinations.delete(key);
-      applyFilters();
-    });
-  });
+  // Filter checkboxes - use event delegation
+  const statsContent = document.getElementById("stats-content");
+  if (statsContent) {
+    // Remove old listener if exists
+    const oldListener = statsContent._filterChangeListener;
+    if (oldListener) {
+      statsContent.removeEventListener("change", oldListener);
+    }
+    
+    // Create new listener that handles all filter types
+    const newListener = (e) => {
+      const target = e.target;
+      
+      // Check if it's a flag filter
+      if (target.classList.contains("flag-filter")) {
+        const key = target.getAttribute("data-key");
+        if (!key) return;
+        if (target.checked) filterState.countries.add(key);
+        else filterState.countries.delete(key);
+        applyFilters();
+      }
+      
+      // Check if it's a type filter
+      else if (target.classList.contains("type-filter")) {
+        const key = target.getAttribute("data-key");
+        if (!key) return;
+        if (target.checked) filterState.types.add(key);
+        else filterState.types.delete(key);
+        applyFilters();
+      }
+      
+      // Check if it's a destination filter
+      else if (target.classList.contains("dest-filter")) {
+        const key = target.getAttribute("data-key");
+        if (!key) return;
+        if (target.checked) filterState.destinations.add(key);
+        else filterState.destinations.delete(key);
+        applyFilters();
+      }
+    };
+    
+    statsContent.addEventListener("change", newListener);
+    statsContent._filterChangeListener = newListener;
+  }
 }
 
 // ============================================================================
