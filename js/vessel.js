@@ -179,6 +179,19 @@ function wireStatsFilterHandlers() {
       applyFilters();
     });
   });
+
+  // Clear filter button handler
+  const clearBtn = document.getElementById("clear-filter");
+  if (clearBtn) {
+    clearBtn.addEventListener("click", () => {
+      filterState.countries.clear();
+      filterState.types.clear();
+      filterState.destinations.clear();
+      applyFilters();
+      // Uncheck all checkboxes
+      document.querySelectorAll(".flag-filter, .type-filter, .dest-filter").forEach(cb => cb.checked = false);
+    });
+  }
 }
 
 // ============================================================================
